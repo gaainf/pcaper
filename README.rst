@@ -18,12 +18,26 @@ Installation
 
     pip install pcaper
 
+************
+Import
+************
+.. code:: python
+
+    import pcaper
+    reader = pcaper.HTTPRequest()
+
+or
+
+.. code:: python
+
+    from pcaper import HTTPRequest
+    reader = HTTPRequest()
 
 ********
 Examples
 ********
 
-Iterate HTTP request
+Iterate HTTP requests
 *****************************
 
 Read pcap file, assemble and iterate HTTP requests
@@ -55,15 +69,40 @@ You can extract header by name
 Filter packets
 *****************************
 
-It is possible to combine tcp and ip filters in dpkt style
+It is possible to filter out excess packets
 
 .. code:: python
 
     reader = pcaper.HTTPRequest()
     params = {
         'input': 'file.pcap',
-        'filter': 'tcp.dport == 80 and ip.src == 1.1.1.1'
+        'filter': 'tcp.dst == 1.1.1.1'
     }
     for request in reader.read_pcap(params):
         print request['origin']
 
+
+You can combine tcp and ip filters in dpkt style
+
+.. code:: python
+
+    params1 = {
+        'input': 'file.pcap',
+        'filter': 'tcp.dport == 80 and ip.src == 1.1.1.1'
+    }
+
+    params2 = {
+        'input': 'file.pcap',
+        'filter': 'tcp.sport == 8888 or ip.dst == 2.2.2.2'
+    }
+
+Notes
+*****************************
+
+New `pcapng format <https://pcapng.github.io/pcapng//>`_ is not support by `dpkt <https://github.com/kbandla/dpkt/>`_ package,
+but you can convert input file from `pcapng` to `pcap` format
+with standard utility, which is installed with wireshark package.
+
+.. code:: bash
+
+    mergecap file.pcapng -w out.pcap -F pcap
