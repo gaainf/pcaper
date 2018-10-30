@@ -8,9 +8,5 @@
 #
 """Global constants"""
 
-from pcaper import HTTPRequest
-__author__ = 'Alexander Grechin'
-__author_email__ = 'infinum@mail.ru'
-__license__ = 'BSD'
-__version__ = '1.0.0'
+from pcaper import *
 __all__ = ["HTTPRequest"]
