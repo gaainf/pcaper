@@ -39,9 +39,9 @@ class HTTPRequest:
             try:
                 pcap = dpkt.pcapng.Reader(input_file_handler)
             except ValueError:
-                print "UPS: Unexpected pcap file format"
-                print "Try to convert file with \"" + \
-                    "mergecap %s -w out.pcap -F pcap\"\n" % params['input']
+                print("UPS: Unexpected pcap file format")
+                print("Try to convert file with \"" +
+                      "mergecap %s -w out.pcap -F pcap\"\n" % params['input'])
                 raise
 
         streams = dict()

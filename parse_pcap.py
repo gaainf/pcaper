@@ -29,7 +29,7 @@ def main():
 
     reader = pcaper.HTTPRequest()
     for request in reader.read_pcap(vars(args)):
-        print "%0.6f: [%s:%d -> %s:%d]\n%s" % (
+        print("%0.6f: [%s:%d -> %s:%d]\n%s") % (
             request['timestamp'],
             request['src'],
             request['sport'],
