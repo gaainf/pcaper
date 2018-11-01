@@ -17,6 +17,53 @@ import socket
 
 class TestPcaper(object):
 
+    # Fixtures
+
+    def set_pcap_file(self, filename, data):
+        """Prepare pcap file"""
+
+        file_handler = open(filename, "wb")
+        pcap_file = dpkt.pcap.Writer(file_handler)
+        for packet in data:
+            pcap_file.writepkt(packet['data'], packet['timestamp'])
+        file_handler.close()
+
+    @pytest.fixture()
+    def prepare_data_file(self):
+        """Prepare data file decoraotor"""
+
+        filename = {'file': ''}
+
+        def _generate_temp_file(*args, **kwargs):
+            filename['file'] = tempfile.NamedTemporaryFile(delete=False).name
+            self.set_pcap_file(filename['file'], args[0])
+            return filename['file']
+
+        yield _generate_temp_file
+
+        # remove file after test
+        if os.path.isfile(filename['file']):
+            os.remove(filename['file'])
+
+    @pytest.fixture()
+    def remove_data_file(self, request):
+        """Remove data file decoraotor"""
+
+        filename = {'file': ''}
+
+        def _return_filename(*args, **kwargs):
+            filename['file'] = tempfile.NamedTemporaryFile(delete=False) \
+                .name
+            return filename['file']
+
+        yield _return_filename
+
+        # remove file after test
+        if os.path.isfile(filename['file']):
+            os.remove(filename['file'])
+
+    # Additional methods
+
     def replace_params(self, ethernet, params=[]):
         if 'tcp' in params:
             for field in params['tcp']:
@@ -41,7 +88,7 @@ class TestPcaper(object):
             b'\x00\x00' +                                        # pointer
             b'\x01\x01\x08\x0a\x3c\x58\x15\xa4\x90\xfd\xa6\xc4'  # options
         )
-        tcp.data = data
+        tcp.data = data.encode("utf-8")
         ip = dpkt.ip.IP(
             b'\x45' +              # ver + hlen
             b'\x00' +              # dsf
@@ -128,7 +175,7 @@ class TestPcaper(object):
             b'\x80\x18\x0e\x42\x40\xe0\x00\x00\x01\x01\x08\x0a' +
             b'\x3c\x58\x15\xa4\x90\xfd\xa6\xc4'
         )
-        tcp.data = data
+        tcp.data = data.encode("utf-8")
         ip = dpkt.ip.IP(
             b'\x45\x00\x04\x24\xfd\xa1\x40\x00\x40\x06\xfc\x68' +
             b'\x0a\x0a\x0a\x01' +
@@ -166,7 +213,7 @@ class TestPcaper(object):
             b'\x80\x18\x00\x3d\x46\xbf\x00\x00\x01\x01\x08\x0a' +
             b'\x90\xfd\xa6\xcf\x3c\x58\x15\xa4'
         )
-        tcp.data = data
+        tcp.data = data.encode("utf-8")
         ip = dpkt.ip.IP(
             b'\x45\x00\x0a\x03\xb3\x85\x40\x00\x3e\x06\x42\xa6' +
             b'\x0a\x0a\x0a\x02' +
@@ -256,91 +303,52 @@ class TestPcaper(object):
         data = [
             {
                 'timestamp': 1489136209.000001,
-                'data': self.generate_syn_packet().__str__()
+                'data': self.generate_syn_packet().__bytes__()
             },
             {
                 'timestamp': 1489136209.000002,
-                'data': self.generate_synack_packet().__str__()
+                'data': self.generate_synack_packet().__bytes__()
             },
             {
                 'timestamp': 1489136209.000003,
-                'data': self.generate_ack_packet().__str__()
+                'data': self.generate_ack_packet().__bytes__()
             },
             {
                 'timestamp': 1489136209.000004,
                 'data': self.generate_http_request_packet(
                     http_request
-                ).__str__()
+                ).__bytes__()
             },
             {
                 'timestamp': 1489136209.000005,
-                'data': self.generate_ack_after_request_packet().__str__()
+                'data': self.generate_ack_after_request_packet().__bytes__()
             },
             {
                 'timestamp': 1489136209.000006,
                 'data': self.generate_http_response_packet(
                     http_response
-                ).__str__()
+                ).__bytes__()
             },
             {
                 'timestamp': 1489136209.000007,
-                'data': self.generate_ack_after_response_packet().__str__()
+                'data': self.generate_ack_after_response_packet().__bytes__()
             },
             {
                 'timestamp': 1489136209.000008,
-                'data': self.generate_first_fin_packet().__str__()
+                'data': self.generate_first_fin_packet().__bytes__()
             },
             {
                 'timestamp': 1489136209.000009,
-                'data': self.generate_second_fin_packet().__str__()
+                'data': self.generate_second_fin_packet().__bytes__()
             },
             {
                 'timestamp': 1489136209.000010,
-                'data': self.generate_ack_after_second_fin_packet().__str__()
+                'data': self.generate_ack_after_second_fin_packet().__bytes__()
             },
         ]
         return data
 
-    def set_pcap_file(self, filename, data):
-        """Prepare pcap file"""
-
-        file_handler = open(filename, "wb")
-        pcap_file = dpkt.pcap.Writer(file_handler)
-        for packet in data:
-            pcap_file.writepkt(packet['data'], packet['timestamp'])
-        file_handler.close()
-
-    @pytest.fixture()
-    def prepare_data_file(self, request):
-        """Prepare data file decoraotor"""
-
-        # create file
-        def return_filename(param=None):
-            filename = tempfile.NamedTemporaryFile(delete=False).name
-            self.set_pcap_file(filename, param)
-            request.param = filename
-            return filename
-
-        # return filename to test
-        yield return_filename
-
-        # remove file after test
-        os.remove(request.param)
-
-    @pytest.fixture()
-    def remove_data_file(self, request):
-        """Remove data file decoraotor"""
-
-        def return_filename(param=None):
-            if not param:
-                param = tempfile.NamedTemporaryFile(delete=False).name
-            request.param = param
-            return param
-
-        yield return_filename
-
-        # remove file after test
-        os.remove(request.param)
+    # Tests
 
     @pytest.mark.positive
     def test_read_pcap_parse_http_get_request_with_content_length(
@@ -356,7 +364,7 @@ class TestPcaper(object):
         ethernet = self.generate_http_request_packet(http_request)
         data = [{
             'timestamp': 1489136209.000001,
-            'data': ethernet.__str__()
+            'data': ethernet.__bytes__()
         }]
         filename = prepare_data_file(data)
         reader = pcaper.HTTPRequest()
@@ -383,7 +391,7 @@ class TestPcaper(object):
         ethernet = self.generate_http_request_packet(http_request)
         data = [{
             'timestamp': 1489136209.000001,
-            'data': ethernet.__str__()
+            'data': ethernet.__bytes__()
         }]
         filename = prepare_data_file(data)
         reader = pcaper.HTTPRequest()
@@ -405,7 +413,7 @@ class TestPcaper(object):
         ethernet = self.generate_http_request_packet(http_request)
         data = [{
             'timestamp': 1489136209.000001,
-            'data': ethernet.__str__()
+            'data': ethernet.__bytes__()
         }]
         filename = prepare_data_file(data)
         reader = pcaper.HTTPRequest()
@@ -429,7 +437,7 @@ class TestPcaper(object):
         ethernet = self.generate_http_request_packet(http_request)
         data = [{
             'timestamp': 1489136209.000001,
-            'data': ethernet.__str__()
+            'data': ethernet.__bytes__()
         }]
         filename = prepare_data_file(data)
         reader = pcaper.HTTPRequest()
@@ -472,7 +480,7 @@ class TestPcaper(object):
         ethernet = self.generate_http_response_packet(http_response)
         data = [{
             'timestamp': 1489136209.000001,
-            'data': ethernet.__str__()
+            'data': ethernet.__bytes__()
         }]
         filename = prepare_data_file(data)
         reader = pcaper.HTTPRequest()
@@ -527,7 +535,7 @@ class TestPcaper(object):
         )
         data = [{
             'timestamp': 1489136209.000001,
-            'data': ethernet.__str__()
+            'data': ethernet.__bytes__()
         }]
         filename = prepare_data_file(data)
         reader = pcaper.HTTPRequest()
@@ -571,7 +579,7 @@ class TestPcaper(object):
         )
         data = [{
             'timestamp': 1489136209.000001,
-            'data': ethernet.__str__()
+            'data': ethernet.__bytes__()
         }]
         filename = prepare_data_file(data)
         reader = pcaper.HTTPRequest()
@@ -631,11 +639,11 @@ class TestPcaper(object):
         data = [
             {
                 'timestamp': 1489136209.000001,
-                'data': ethernet1.__str__()
+                'data': ethernet1.__bytes__()
             },
             {
                 'timestamp': 1489136209.000002,
-                'data': ethernet2.__str__()
+                'data': ethernet2.__bytes__()
             }
         ]
         filename = prepare_data_file(data)
@@ -713,11 +721,11 @@ class TestPcaper(object):
         data = [
             {
                 'timestamp': 1489136209.000001,
-                'data': ethernet1.__str__()
+                'data': ethernet1.__bytes__()
             },
             {
                 'timestamp': 1489136209.000002,
-                'data': ethernet2.__str__()
+                'data': ethernet2.__bytes__()
             }
         ]
         filename = prepare_data_file(data)
@@ -765,7 +773,7 @@ class TestPcaper(object):
         ethernet = self.generate_http_request_packet(http_request)
         data = [{
             'timestamp': 1489136209.000001,
-            'data': ethernet.__str__()
+            'data': ethernet.__bytes__()
         }]
         filename = prepare_data_file(data)
         reader = pcaper.HTTPRequest()
@@ -804,7 +812,7 @@ class TestPcaper(object):
         ethernet = self.generate_http_request_packet(http_request)
         data = [{
             'timestamp': 1489136209.000001,
-            'data': ethernet.__str__()
+            'data': ethernet.__bytes__()
         }]
         filename = prepare_data_file(data)
         reader = pcaper.HTTPRequest()
@@ -834,7 +842,7 @@ class TestPcaper(object):
         ethernet = self.generate_http_request_packet(http_request)
         data = [{
             'timestamp': 1489136209.000001,
-            'data': ethernet.__str__()
+            'data': ethernet.__bytes__()
         }]
         filename = prepare_data_file(data)
         reader = pcaper.HTTPRequest()
@@ -863,7 +871,7 @@ class TestPcaper(object):
         ethernet = self.generate_http_request_packet(http_request)
         data = [{
             'timestamp': 1489136209.000001,
-            'data': ethernet.__str__()
+            'data': ethernet.__bytes__()
         }]
         filename = prepare_data_file(data)
         reader = pcaper.HTTPRequest()
@@ -893,7 +901,7 @@ class TestPcaper(object):
         ethernet = self.generate_http_request_packet(http_request)
         data = [{
             'timestamp': 1489136209.000001,
-            'data': ethernet.__str__()
+            'data': ethernet.__bytes__()
         }]
         filename = prepare_data_file(data)
         reader = pcaper.HTTPRequest()

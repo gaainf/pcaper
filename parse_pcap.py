@@ -38,10 +38,10 @@ def main():
             request['original']
         )
 
-    print "Stats:"
+    print("Stats:")
     stats = reader.get_stats()
     for key in stats.keys():
-        print "\t%s: %d" % (key, stats[key])
+        print("\t%s: %d" % (key, stats[key]))
 
 
 if __name__ == '__main__':

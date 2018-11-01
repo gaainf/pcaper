@@ -8,5 +8,6 @@
 #
 """Global constants"""
 
-from pcaper import HTTPRequest
+
+from .pcaper import HTTPRequest
 __all__ = ["HTTPRequest"]

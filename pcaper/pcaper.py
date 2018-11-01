@@ -14,6 +14,7 @@ import dpkt
 import socket
 from dpkt.compat import BytesIO
 import re
+from six import string_types
 
 
 class HTTPRequest:
@@ -32,7 +33,7 @@ class HTTPRequest:
             "incorrect": 0,
             "incomplete": 0,
         }
-        input_file_handler = open(params['input'], 'r')
+        input_file_handler = open(params['input'], 'rb')
         try:
             pcap = dpkt.pcap.Reader(input_file_handler)
         except ValueError:
@@ -49,6 +50,7 @@ class HTTPRequest:
             eth_packet = dpkt.ethernet.Ethernet(packet)
             ip_packet = eth_packet.data
             tcp_packet = ip_packet.data
+            tcp_packet.data = tcp_packet.data.decode("utf-8")
 
             # remove cache on new or final packets
             if self.tcp_flags(tcp_packet.flags) in ("S", "R", "F"):
@@ -142,7 +144,9 @@ class HTTPRequest:
             if match:
                 return eval(
                     match.group(1) +
-                    '"' + socket.inet_aton(match.group(2)) + '"'
+                    'b\'' +
+                    socket.inet_aton(match.group(2)).decode("utf-8") +
+                    '\''
                 )
             return eval(filter_string)
 
@@ -180,9 +184,12 @@ class HTTPRequest:
 
     def get_content_length(self, http_request):
         if 'content-length' in http_request['headers']:
-            if type(http_request['headers']['content-length']) == str \
-                or type(http_request['headers']['content-length']) \
-                    == unicode:
+            if (
+                isinstance(
+                    http_request['headers']['content-length'],
+                    string_types
+                )
+            ):
                 return int(http_request['headers']['content-length'])
         return None
 
@@ -190,7 +197,7 @@ class HTTPRequest:
         """Parse HTTP headers without body"""
 
         request = {}
-        f = BytesIO(data)
+        f = BytesIO(data.encode())
         line = f.readline().decode("ascii", "ignore")
         parts = line.strip().split()
         if len(parts) < 2:
@@ -210,9 +217,12 @@ class HTTPRequest:
         request['method'] = parts[0]
         request['uri'] = parts[1]
         request['headers'] = dpkt.http.parse_headers(f)
+
         if 'content-length' in request['headers']:
-            if type(request['headers']['content-length']) != str \
-                    and type(request['headers']['content-length']) != unicode:
+            if not isinstance(
+                        request['headers']['content-length'],
+                        string_types
+                    ):
                 return None
             try:
                 request['body'] = dpkt.http.parse_body(f, request['headers'])
