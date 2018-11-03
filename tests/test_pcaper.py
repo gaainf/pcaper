@@ -175,7 +175,10 @@ class TestPcaper(object):
             b'\x80\x18\x0e\x42\x40\xe0\x00\x00\x01\x01\x08\x0a' +
             b'\x3c\x58\x15\xa4\x90\xfd\xa6\xc4'
         )
-        tcp.data = data.encode("utf-8")
+        try:
+            tcp.data = bytes(data)
+        except TypeError:
+            tcp.data = bytes(data, "utf-8")
         ip = dpkt.ip.IP(
             b'\x45\x00\x04\x24\xfd\xa1\x40\x00\x40\x06\xfc\x68' +
             b'\x0a\x0a\x0a\x01' +
@@ -374,6 +377,41 @@ class TestPcaper(object):
             }
         ):
             assert request['origin'] == http_request, \
+                "unexpected http request data"
+            packets = packets + 1
+        assert packets == 1, "unexpected packets count"
+
+    @pytest.mark.negative
+    def test_read_pcap_parse_http_with_non_utf8_encoding(
+        self,
+        prepare_data_file
+    ):
+        """Check pcap_reader parse http data
+        with non utf-8 encoding correctly"""
+
+        http_request = "POST https://rambler.ru/ HTTP/1.1\r\n" + \
+                       "Host: rambler.ru\r\n" + \
+                       "Content-Length: 3\r\n\r\n" + \
+                       "\x89\r\n"
+        try:
+            expected_http_request = bytes(http_request)
+        except TypeError:
+            expected_http_request = bytes(http_request, "utf-8")
+        expected_http_request = \
+            expected_http_request.decode("utf-8", "replace")
+        ethernet = self.generate_http_request_packet(http_request)
+        data = [{
+            'timestamp': 1489136209.000001,
+            'data': ethernet.__bytes__()
+        }]
+        filename = prepare_data_file(data)
+        reader = pcaper.HTTPRequest()
+        packets = 0
+        for request in reader.read_pcap({
+            'input': filename
+            }
+        ):
+            assert request['origin'] == expected_http_request, \
                 "unexpected http request data"
             packets = packets + 1
         assert packets == 1, "unexpected packets count"

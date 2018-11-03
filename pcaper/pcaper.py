@@ -50,7 +50,7 @@ class HTTPRequest:
             eth_packet = dpkt.ethernet.Ethernet(packet)
             ip_packet = eth_packet.data
             tcp_packet = ip_packet.data
-            tcp_packet.data = tcp_packet.data.decode("utf-8")
+            tcp_packet.data = tcp_packet.data.decode("utf-8", "replace")
 
             # remove cache on new or final packets
             if self.tcp_flags(tcp_packet.flags) in ("S", "R", "F"):
@@ -137,9 +137,8 @@ class HTTPRequest:
         """Filter packet
         Example: tcp.dport == 80
         """
-        def single_filter(filter_string, eth, ip=None, tcp=None):
-            if filter_string is None or filter_string == '':
-                return True
+
+        def eval_filter(filter_string, eth, ip=None, tcp=None):
             match = re.search(r'(ip.(?:src|dst) *== *)(.+)', filter_string)
             if match:
                 return eval(
@@ -150,21 +149,24 @@ class HTTPRequest:
                 )
             return eval(filter_string)
 
+        if filter_string is None or filter_string == '':
+            return True
+
         or_split = re.split(r' +or +', filter_string)
         if len(or_split) > 1:
             for elem in or_split:
-                if single_filter(elem, eth, ip, tcp):
+                if eval_filter(elem, eth, ip, tcp):
                     return True
             return False
 
         and_split = re.split(r' +and +', filter_string)
         if len(and_split) > 1:
             for elem in or_split:
-                if not single_filter(elem, eth, ip, tcp):
+                if not eval_filter(elem, eth, ip, tcp):
                     return False
             return True
 
-        return single_filter(filter_string, eth, ip, tcp)
+        return eval_filter(filter_string, eth, ip, tcp)
 
     def is_complete_request(self, http_request):
         """Check that HTTP request is complete"""
@@ -197,8 +199,8 @@ class HTTPRequest:
         """Parse HTTP headers without body"""
 
         request = {}
-        f = BytesIO(data.encode())
-        line = f.readline().decode("ascii", "ignore")
+        f = BytesIO(data.encode("utf-8", "replace"))
+        line = f.readline().decode("utf-8", "replace")
         parts = line.strip().split()
         if len(parts) < 2:
             # raise dpkt.UnpackError('invalid request: %r' % line)

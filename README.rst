@@ -99,7 +99,7 @@ You can combine tcp and ip filters in dpkt style
 Notes
 *****************************
 
-New `pcapng format <https://pcapng.github.io/pcapng//>`_ is not support by `dpkt <https://github.com/kbandla/dpkt/>`_ package,
+New `pcapng format <https://pcapng.github.io/pcapng//>`_ is not supported by `dpkt <https://github.com/kbandla/dpkt/>`_ package,
 but you can convert input file from `pcapng` to `pcap` format
 with standard utility, which is installed with `wireshark <https://www.wireshark.org//>`_ package.
 

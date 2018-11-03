@@ -17,7 +17,8 @@ with open('README.rst') as f:
 setuptools_kwargs = {
     'install_requires': [
         'dpkt>=1.9.1',
-        'flake8>=3.5.0'
+        'flake8>=3.5.0',
+        'six>=1.11.0'
     ],
     'setup_requires': 'pytest-runner',
     'tests_require': [
