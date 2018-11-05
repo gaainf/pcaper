@@ -10,6 +10,8 @@
 """Setup module"""
 
 from setuptools import setup, find_packages
+import re
+from os.path import join, dirname
 
 with open('README.rst') as f:
     long_readme = f.read()
@@ -25,13 +27,19 @@ setuptools_kwargs = {
         'pytest>=2.7',
         'pytest-cov>=2.6.0'
     ],
+    'entry_points': {
+        'console_scripts': [
+            'parse_http=pcaper.parse_http:main'
+        ],
+    },
 }
 
 PACKAGE_NAME = 'pcaper'
 AUTHOR = 'Alexander Grechin'
 AUTHOR_EMAIL = 'infinum@mail.ru'
 LICENSE = 'BSD'
-VERSION = '1.0.0'
+with open(join(dirname(__file__), PACKAGE_NAME, '_version.py'), 'r') as f:
+    VERSION = re.match(r".*__version__ = '(.*?)'", f.read(), re.S).group(1)
 
 setup(
     name=PACKAGE_NAME,
