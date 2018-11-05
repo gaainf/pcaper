@@ -15,6 +15,7 @@ import socket
 from dpkt.compat import BytesIO
 import re
 from six import string_types
+from collections import OrderedDict
 
 
 class HTTPRequest:
@@ -27,12 +28,11 @@ class HTTPRequest:
     def read_pcap(self, params):
         """Read pcap file and assemble http requests"""
 
-        self.info = {
-            "total": 0,
-            "complete": 0,
-            "incorrect": 0,
-            "incomplete": 0,
-        }
+        self.info = OrderedDict()
+        self.info["total"] = 0
+        self.info["complete"] = 0
+        self.info["incorrect"] = 0
+        self.info["incomplete"] = 0
         input_file_handler = open(params['input'], 'rb')
         try:
             pcap = dpkt.pcap.Reader(input_file_handler)
