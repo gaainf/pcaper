@@ -86,14 +86,9 @@ You can combine tcp and ip filters in dpkt style
 
 .. code:: python
 
-    params1 = {
-        'input': 'file.pcap',
-        'filter': 'tcp.dport == 80 and ip.src == 1.1.1.1'
-    }
-
     params2 = {
         'input': 'file.pcap',
-        'filter': 'tcp.sport == 8888 or ip.dst == 2.2.2.2'
+        'filter': '(ip.src == 10.4.0.136 or ip.dst == 10.1.40.61) and tcp.dport == 8888'
     }
 
 Notes
@@ -106,3 +101,40 @@ with standard utility, which is installed with `wireshark <https://www.wireshark
 .. code:: bash
 
     mergecap file.pcapng -w out.pcap -F pcap
+
+************
+Scripts
+************
+
+parse_http
+**********
+
+The `parse_http` script is installed to Python directory
+and can be executed directly in command line
+
+It simplify parsing of pcap files. Just extract HTTP requests
+including its headers and body and print out complete data to console or file.
+
+Print HTTP requests from pcap file:
+
+.. code:: bash
+
+    parse_http file.pcap
+
+Filter HTTP requests and write to external file:
+
+.. code:: bash
+
+    parse_http -f "tcp.dport == 8080" -o file.out file.pcap
+
+Print statistics about counted requests:
+
+.. code:: bash
+
+    parse_http -f "ip.src == 10.10.10.10" -S file.pcap
+
+    Stats:
+        total: 1
+        complete: 1
+        incorrect: 0
+        incomplete: 0

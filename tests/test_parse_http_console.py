@@ -30,7 +30,7 @@ class TestParseHttp(object):
 
     @pytest.fixture()
     def prepare_data_file(self):
-        """Prepare data file decoraotor"""
+        """Prepare data file decorator"""
 
         filename = {'file': ''}
 
@@ -47,7 +47,7 @@ class TestParseHttp(object):
 
     @pytest.fixture()
     def remove_data_file(self, request):
-        """Remove data file decoraotor"""
+        """Remove data file decorator"""
 
         filename = {'file': ''}
 

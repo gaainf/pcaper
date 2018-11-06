@@ -7,6 +7,9 @@
 # See LICENSE file in the project root for full license information.
 #
 
+"""Parse traffic dump in pcap format
+extract HTTP requests including headers and body"""
+
 import argparse
 from pcaper import HTTPRequest
 from . import _version
@@ -14,10 +17,18 @@ import sys
 
 
 def parse_args():
+    """Parse console arguments
+
+    Returns:
+        dict: console arguments
+    """
+
     parser = argparse.ArgumentParser(
+        description="Parse traffic dump in pcap format " +
+                    "extract HTTP requests including headers and body",
         add_help=True
     )
-    parser.add_argument('input', help='input filename')
+    parser.add_argument('input', help='the pcap file to parse')
     parser.add_argument('-o', '--output', help='output filename')
     parser.add_argument('-f', '--filter', help='pcap filter')
     parser.add_argument(
@@ -35,6 +46,11 @@ def parse_args():
 
 
 def parse_http(args):
+    """Read pcap file and print HTTP requests
+    Args:
+        args (dict): console arguments
+    """
+
     reader = HTTPRequest()
 
     if args['output']:

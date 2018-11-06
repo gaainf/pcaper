@@ -19,14 +19,24 @@ from collections import OrderedDict
 
 
 class HTTPRequest:
+    """HTTP requests iterator"""
 
     def __init__(self):
+        """Constructor"""
+
         self.info = {}
         self.METHODS = dpkt.http.Request._Request__methods
         self.PROTO = dpkt.http.Request._Request__proto
 
     def read_pcap(self, params):
-        """Read pcap file and assemble http requests"""
+        """Read pcap and return iterator for assembled HTTP requests
+
+        Args:
+            params (dict): input parameters
+                "input" : input pcap filename
+                "output": output filename
+                "filter": tcp/ip packet filter
+        """
 
         self.info = OrderedDict()
         self.info["total"] = 0
@@ -46,6 +56,10 @@ class HTTPRequest:
                 raise
 
         streams = dict()
+        if "filter" in params:
+            params["filter"] = self.prepare_filter(params["filter"])
+        else:
+            params["filter"] = None
         for timestamp, packet in pcap:
             eth_packet = dpkt.ethernet.Ethernet(packet)
             ip_packet = eth_packet.data
@@ -58,7 +72,7 @@ class HTTPRequest:
                     self.info["incomplete"] = self.info["incomplete"] + 1
                     del streams[tcp_packet.sport]
             # filter tcp packets
-            elif ("filter" not in params
+            elif (not params["filter"]
                     or self.filter_packet(
                         params["filter"],
                         eth_packet,
@@ -104,7 +118,14 @@ class HTTPRequest:
         input_file_handler.close()
 
     def tcp_flags(self, flags):
-        """Check tcp ack flags"""
+        """Identify TCP ack flags
+
+        Args:
+            flags (dpkt.tcp.flags): TCP flags
+
+        Returns:
+            str: returns identifiers of TCP flags
+        """
 
         ret = ''
         if flags & dpkt.tcp.TH_FIN:
@@ -125,51 +146,76 @@ class HTTPRequest:
             ret = ret + 'C'
         return ret
 
-    def starts_with_http_method(self, packet):
-        """Check the packet starts with HTTP method"""
+    def starts_with_http_method(self, data):
+        """Check the packet starts with HTTP method
+
+        Args:
+            data (str): TCP packet data
+
+        Returns:
+            bool: returns True if TCP packet data
+                  starts with HTTP request method
+        """
 
         for method in self.METHODS:
-            if packet.startswith(method):
+            if data.startswith(method):
                 return True
         return False
 
-    def filter_packet(self, filter_string, eth, ip=None, tcp=None):
-        """Filter packet
-        Example: tcp.dport == 80
+    def prepare_filter(self, filter_string):
+        """Get filter string in proper format
+
+        Args:
+            filter_string (str): packet filter expression
+                                 Example: "tcp.dport == 80"
+
+        Returns:
+            str: corresponding filter expression
         """
 
-        def eval_filter(filter_string, eth, ip=None, tcp=None):
-            match = re.search(r'(ip.(?:src|dst) *== *)(.+)', filter_string)
+        def inet_filter(element):
+            match = re.search(r'(ip.(?:src|dst) *== *)(.+)', element)
             if match:
-                return eval(
-                    match.group(1) +
-                    'b\'' +
-                    socket.inet_aton(match.group(2)).decode("utf-8") +
-                    '\''
-                )
+                return "%ssocket.inet_aton('%s')" % \
+                    (match.group(1), match.group(2))
+            return element
+
+        if filter_string:
+            return re.sub(
+                r'(ip.(?:src|dst) *== *[\d.]+)',
+                lambda m: inet_filter(m.group()),
+                filter_string
+            )
+        return filter_string
+
+    def filter_packet(self, filter_string, eth, ip=None, tcp=None):
+        """Filter Ethernet, IP and TCP packets
+
+        Args:
+            filter_string (str): packet filter expression
+                                 Example: "tcp.dport == 80"
+            eth (dpkt.Ethernet): Ethernet packet
+            ip (dpkt.IP):        IP packet
+            tcp (dpkt.TCP):      TCP packet
+
+        Returns:
+            bool: returns True if all provided packets
+                  are corresponding filter expression
+        """
+
+        if filter_string is not None:
             return eval(filter_string)
-
-        if filter_string is None or filter_string == '':
-            return True
-
-        or_split = re.split(r' +or +', filter_string)
-        if len(or_split) > 1:
-            for elem in or_split:
-                if eval_filter(elem, eth, ip, tcp):
-                    return True
-            return False
-
-        and_split = re.split(r' +and +', filter_string)
-        if len(and_split) > 1:
-            for elem in or_split:
-                if not eval_filter(elem, eth, ip, tcp):
-                    return False
-            return True
-
-        return eval_filter(filter_string, eth, ip, tcp)
+        return True
 
     def is_complete_request(self, http_request):
-        """Check that HTTP request is complete"""
+        """Check that HTTP request is complete
+
+        Args:
+            http_request (str): HTTP request
+
+        Returns:
+            bool: returns True if HTTP request is complete
+        """
 
         content_length = self.get_content_length(http_request)
         if content_length is not None \
@@ -185,8 +231,18 @@ class HTTPRequest:
         return False
 
     def get_content_length(self, http_request):
+        """Get Content-Length header value
+
+        Args:
+            http_request (str): HTTP request
+
+        Returns:
+            str: returns Content-Length value
+        """
+
         if 'content-length' in http_request['headers']:
             if (
+                # ignore value if multiple Content-Length headers
                 isinstance(
                     http_request['headers']['content-length'],
                     string_types
@@ -196,7 +252,19 @@ class HTTPRequest:
         return None
 
     def parse_request(self, data):
-        """Parse HTTP headers without body"""
+        """Parse HTTP request
+            "version": protocol version
+            "method":  request method
+            "uri":     URI
+            "headers": headers
+            "body":    body
+
+        Args:
+            data (str): assembled data of TCP packets
+
+        Returns:
+            dict: HTTP request structure
+        """
 
         request = {}
         f = BytesIO(data.encode("utf-8", "replace"))
@@ -220,6 +288,7 @@ class HTTPRequest:
         request['uri'] = parts[1]
         request['headers'] = dpkt.http.parse_headers(f)
 
+        # ignore value if multiple Content-Length headers
         if 'content-length' in request['headers']:
             if not isinstance(
                         request['headers']['content-length'],
@@ -235,6 +304,16 @@ class HTTPRequest:
         return request
 
     def get_stats(self):
-        """Get stats captured during parsing of pcap file"""
+        """Get stats captured during parsing of pcap file,
+           requests should be iterated via "read_pcap" method
+
+            "total":      total requests count
+            "complete":   complete requests count
+            "incorrect":  count of requests which can't be parsed properly
+            "incomplete": count of incomplete requests
+
+        Returns:
+            dict: HTTP requests statistics
+        """
 
         return self.info

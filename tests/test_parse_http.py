@@ -14,6 +14,7 @@ import dpkt
 from pcaper import parse_http
 import pcaper
 import sys
+import socket
 
 
 class TestParseHttp(object):
@@ -31,7 +32,7 @@ class TestParseHttp(object):
 
     @pytest.fixture()
     def prepare_data_file(self):
-        """Prepare data file decoraotor"""
+        """Prepare data file decorator"""
 
         filename = {'file': ''}
 
@@ -48,7 +49,7 @@ class TestParseHttp(object):
 
     @pytest.fixture()
     def remove_data_file(self, request):
-        """Remove data file decoraotor"""
+        """Remove data file decorator"""
 
         filename = {'file': ''}
 
@@ -65,27 +66,53 @@ class TestParseHttp(object):
 
     # Additional methods
 
-    def generate_http_request_packet(self, data):
+    def replace_params(self, ethernet, params=[]):
+        if 'tcp' in params:
+            for field in params['tcp']:
+                setattr(ethernet.data.data, field, params['tcp'][field])
+        if 'ip' in params:
+            for field in params['ip']:
+                setattr(ethernet.data, field, params['ip'][field])
+        if 'ethernet' in params:
+            for field in params['ethernet']:
+                setattr(ethernet, field, params['ethernet'][field])
+
+    def generate_custom_http_request_packet(self, data, params=[]):
         tcp = dpkt.tcp.TCP(
-            b'\x9d\x7e\x22\xb8\xb6\xce\xe8\x3d\xb7\x1a\x15\x40' +
-            b'\x80\x18\x0e\x42\x40\xe0\x00\x00\x01\x01\x08\x0a' +
-            b'\x3c\x58\x15\xa4\x90\xfd\xa6\xc4'
+            b'\x9d\x7e' +                                        # sport
+            b'\x22\xb8' +                                        # dport
+            b'\xb6\xce\xe8\x3d' +                                # seq
+            b'\xb7\x1a\x15\x40' +                                # ack
+            b'\x80' +                                            # len
+            b'\x18' +                                            # flags
+            b'\x0e\x42' +                                        # win
+            b'\x40\xe0' +                                        # chk
+            b'\x00\x00' +                                        # pointer
+            b'\x01\x01\x08\x0a\x3c\x58\x15\xa4\x90\xfd\xa6\xc4'  # options
         )
-        try:
-            tcp.data = bytes(data)
-        except TypeError:
-            tcp.data = bytes(data, "utf-8")
+        tcp.data = data.encode("utf-8")
         ip = dpkt.ip.IP(
-            b'\x45\x00\x04\x24\xfd\xa1\x40\x00\x40\x06\xfc\x68' +
-            b'\x0a\x0a\x0a\x01' +
-            b'\x0a\x0a\x0a\x02'
+            b'\x45' +              # ver + hlen
+            b'\x00' +              # dsf
+            b'\x04\x24' +          # len
+            b'\xfd\xa1' +          # id
+            b'\x40' +              # flags
+            b'\x00' +              # offset
+            b'\x40' +              # ttl
+            b'\x06' +              # proto
+            b'\xfc\x68' +          # cks
+            b'\x0a\x0a\x0a\x01' +  # src
+            b'\x0a\x0a\x0a\x02'    # dst
         )
         ip.len = len(data)
         ip.data = tcp
         ethernet = dpkt.ethernet.Ethernet(
-            b'\x00\x00\x00\x00\x00\x02\x00\x00\x00\x00\x00\x01\x08\x00'
+            b'\x00\x00\x00\x00\x00\x02' +  # dmac
+            b'\x00\x00\x00\x00\x00\x01' +  # smac
+            b'\x08\x00'
         )
         ethernet.data = ip
+        self.replace_params(ethernet, params)
         return ethernet
 
     # Tests
@@ -116,7 +143,7 @@ class TestParseHttp(object):
         http_request = "GET https://rambler.ru/ HTTP/1.1\r\n" + \
                        "Host: rambler.ru\r\n" + \
                        "Content-Length: 0\r\n\r\n"
-        ethernet = self.generate_http_request_packet(http_request)
+        ethernet = self.generate_custom_http_request_packet(http_request)
         data = [{
             'timestamp': 1489136209.000001,
             'data': ethernet.__bytes__()
@@ -135,6 +162,56 @@ class TestParseHttp(object):
             http_request + "\n", "unexpected output"
 
     @pytest.mark.positive
+    def test_parse_http_filter(
+        self,
+        prepare_data_file,
+        capsys
+    ):
+        """Check main function parse input file with filter correctly"""
+
+        http_request = "GET https://rambler.ru/ HTTP/1.1\r\n" + \
+                       "Host: rambler.ru\r\n" + \
+                       "Content-Length: 0\r\n\r\n"
+        params = {
+            'ip': {
+                'src': socket.inet_aton('10.4.0.136')
+            }
+        }
+        ethernet = self.generate_custom_http_request_packet(
+            http_request,
+            params
+        )
+        data = [{
+            'timestamp': 1489136209.000001,
+            'data': ethernet.__bytes__()
+        }]
+        filename = prepare_data_file(data)
+
+        # match filter
+        parse_http.parse_http({
+            'input': filename,
+            'output': False,
+            'stats': False,
+            'stats_only': False,
+            'filter': 'ip.src == 10.4.0.136',
+        })
+        captured = capsys.readouterr()
+        assert captured.out == \
+            "1489136209.000001: [10.4.0.136:40318 -> 10.10.10.2:8888]\n" + \
+            http_request + "\n", "unexpected output"
+
+        # unmatch filter
+        parse_http.parse_http({
+            'input': filename,
+            'output': False,
+            'stats': False,
+            'stats_only': False,
+            'filter': 'ip.src == 10.4.1.136',
+        })
+        captured = capsys.readouterr()
+        assert captured.out == "", "unexpected output"
+
+    @pytest.mark.positive
     def test_parse_http_output_file(
         self,
         prepare_data_file,
@@ -145,7 +222,7 @@ class TestParseHttp(object):
         http_request = "GET https://rambler.ru/ HTTP/1.1\r\n" + \
                        "Host: rambler.ru\r\n" + \
                        "Content-Length: 0\r\n\r\n"
-        ethernet = self.generate_http_request_packet(http_request)
+        ethernet = self.generate_custom_http_request_packet(http_request)
         data = [{
             'timestamp': 1489136209.000001,
             'data': ethernet.__bytes__()
@@ -177,7 +254,7 @@ class TestParseHttp(object):
         http_request = "GET https://rambler.ru/ HTTP/1.1\r\n" + \
                        "Host: rambler.ru\r\n" + \
                        "Content-Length: 0\r\n\r\n"
-        ethernet = self.generate_http_request_packet(http_request)
+        ethernet = self.generate_custom_http_request_packet(http_request)
         data = [{
             'timestamp': 1489136209.000001,
             'data': ethernet.__bytes__()
@@ -206,7 +283,7 @@ class TestParseHttp(object):
         http_request = "GET https://rambler.ru/ HTTP/1.1\r\n" + \
                        "Host: rambler.ru\r\n" + \
                        "Content-Length: 0\r\n\r\n"
-        ethernet = self.generate_http_request_packet(http_request)
+        ethernet = self.generate_custom_http_request_packet(http_request)
         data = [{
             'timestamp': 1489136209.000001,
             'data': ethernet.__bytes__()
