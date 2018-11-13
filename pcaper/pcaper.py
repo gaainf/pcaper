@@ -34,7 +34,6 @@ class HTTPRequest:
         Args:
             params (dict): input parameters
                 "input" : input pcap filename
-                "output": output filename
                 "filter": tcp/ip packet filter
         """
 
@@ -43,6 +42,9 @@ class HTTPRequest:
         self.info["complete"] = 0
         self.info["incorrect"] = 0
         self.info["incomplete"] = 0
+
+        if 'input' not in params or not params['input']:
+            raise ValueError('input filename is not specified or empty')
         input_file_handler = open(params['input'], 'rb')
         try:
             pcap = dpkt.pcap.Reader(input_file_handler)

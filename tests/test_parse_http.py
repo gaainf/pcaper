@@ -302,3 +302,20 @@ class TestParseHttp(object):
             http_request + "\n" + \
             "Stats:\n\ttotal: 1\n\tcomplete: 1\n\t" + \
             "incorrect: 0\n\tincomplete: 0\n", "unexpected output"
+
+    @pytest.mark.negative
+    def test_parse_http_input_file(
+        self,
+        capsys
+    ):
+        """Check empty input filename"""
+
+        with pytest.raises(ValueError) as e:
+            parse_http.parse_http({
+                'input': None,
+                'output': False,
+                'stats': False,
+                'stats_only': False,
+                'filter': None,
+            })
+        assert e.value.args[0] == 'input filename is not specified or empty'
