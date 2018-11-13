@@ -304,7 +304,7 @@ class TestParseHttp(object):
             "incorrect: 0\n\tincomplete: 0\n", "unexpected output"
 
     @pytest.mark.negative
-    def test_parse_http_input_file(
+    def test_parse_http_empty_input_file(
         self,
         capsys
     ):
