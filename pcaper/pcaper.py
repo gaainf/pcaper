@@ -65,7 +65,11 @@ class HTTPRequest:
         for timestamp, packet in pcap:
             eth_packet = dpkt.ethernet.Ethernet(packet)
             ip_packet = eth_packet.data
+            if not hasattr(ip_packet, 'data'):
+                continue
             tcp_packet = ip_packet.data
+            if not hasattr(tcp_packet, 'data'):
+                continue
             tcp_packet.data = tcp_packet.data.decode("utf-8", "replace")
 
             # remove cache on new or final packets
