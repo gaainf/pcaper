@@ -220,7 +220,7 @@ class TestParseHttp(object):
         prepare_data_file,
         capsys
     ):
-        """Check main function parse input file 
+        """Check main function parse input file
         with exclude-filter correctly"""
 
         http_request = "GET https://rambler.ru/ HTTP/1.1\r\n" + \
@@ -273,7 +273,8 @@ class TestParseHttp(object):
         prepare_data_file,
         capsys
     ):
-        """Check main function parse input file with excluding filter correctly"""
+        """Check main function parse input file with excluding filter
+        correctly"""
 
         http_request = "GET https://rambler.ru/ HTTP/1.1\r\n" + \
                        "Host: rambler.ru\r\n" + \
