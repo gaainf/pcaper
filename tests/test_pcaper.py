@@ -371,6 +371,7 @@ class TestPcaper(object):
         }]
         filename = prepare_data_file(data)
         reader = pcaper.HTTPRequest()
+
         packets = 0
         for request in reader.read_pcap({
             'input': filename
@@ -406,6 +407,7 @@ class TestPcaper(object):
         }]
         filename = prepare_data_file(data)
         reader = pcaper.HTTPRequest()
+
         packets = 0
         for request in reader.read_pcap({
             'input': filename
@@ -433,6 +435,7 @@ class TestPcaper(object):
         }]
         filename = prepare_data_file(data)
         reader = pcaper.HTTPRequest()
+
         packets = 0
         for request in reader.read_pcap({
             'input': filename
@@ -455,6 +458,7 @@ class TestPcaper(object):
         }]
         filename = prepare_data_file(data)
         reader = pcaper.HTTPRequest()
+
         packets = 0
         for request in reader.read_pcap({
             'input': filename
@@ -479,6 +483,7 @@ class TestPcaper(object):
         }]
         filename = prepare_data_file(data)
         reader = pcaper.HTTPRequest()
+
         packets = 0
         for request in reader.read_pcap({
             'input': filename
@@ -500,6 +505,7 @@ class TestPcaper(object):
         data = self.generate_tcp_session(http_request, http_response)
         filename = prepare_data_file(data)
         reader = pcaper.HTTPRequest()
+
         packets = 0
         for request in reader.read_pcap({
             'input': filename
@@ -522,6 +528,7 @@ class TestPcaper(object):
         }]
         filename = prepare_data_file(data)
         reader = pcaper.HTTPRequest()
+
         packets = 0
         for request in reader.read_pcap({
             'input': filename
@@ -577,6 +584,7 @@ class TestPcaper(object):
         }]
         filename = prepare_data_file(data)
         reader = pcaper.HTTPRequest()
+
         packets = 0
         for request in reader.read_pcap({
             'input': filename,
@@ -587,6 +595,7 @@ class TestPcaper(object):
                 "unexpected http request data"
             packets = packets + 1
         assert packets == 1, "unexpected packets count"
+
         packets = 0
         for request in reader.read_pcap({
             'input': filename,
@@ -595,6 +604,52 @@ class TestPcaper(object):
         ):
             packets = packets + 1
         assert packets == 0, "unexpected packets count"
+
+    @pytest.mark.positive
+    def test_read_pcap_http_request_with_exfilter_by_dport(
+        self,
+        prepare_data_file
+    ):
+        """Check pcap_reader excludes packets by tcp.dport correctly"""
+
+        http_request = "GET https://rambler.ru/ HTTP/1.1\r\n" + \
+                       "Host: rambler.ru\r\n" + \
+                       "Content-Length: 0\r\n\r\n"
+        params = {
+            'tcp': {
+                'dport': 80
+            }
+        }
+        ethernet = self.generate_custom_http_request_packet(
+            http_request,
+            params
+        )
+        data = [{
+            'timestamp': 1489136209.000001,
+            'data': ethernet.__bytes__()
+        }]
+        filename = prepare_data_file(data)
+        reader = pcaper.HTTPRequest()
+
+        packets = 0
+        for request in reader.read_pcap({
+            'input': filename,
+            'exfilter': 'tcp.dport == 80'
+            }
+        ):
+            assert request['origin'] == http_request, \
+                "unexpected http request data"
+            packets = packets + 1
+        assert packets == 0, "unexpected packets count"
+
+        packets = 0
+        for request in reader.read_pcap({
+            'input': filename,
+            'exclude-filter': 'tcp.dport == 81'
+            }
+        ):
+            packets = packets + 1
+        assert packets == 1, "unexpected packets count"
 
     @pytest.mark.positive
     def test_read_pcap_http_request_with_filter_by_src(
@@ -621,6 +676,7 @@ class TestPcaper(object):
         }]
         filename = prepare_data_file(data)
         reader = pcaper.HTTPRequest()
+
         packets = 0
         for request in reader.read_pcap({
             'input': filename,
@@ -631,10 +687,160 @@ class TestPcaper(object):
                 "unexpected http request data"
             packets = packets + 1
         assert packets == 1, "unexpected packets count"
+
         packets = 0
         for request in reader.read_pcap({
             'input': filename,
             'filter': 'ip.src == 1.1.1.2'
+            }
+        ):
+            packets = packets + 1
+        assert packets == 0, "unexpected packets count"
+
+    @pytest.mark.positive
+    def test_read_pcap_http_request_with_exfilter_by_src(
+        self,
+        prepare_data_file
+    ):
+        """Check pcap_reader excludes packets by ip.src correctly"""
+
+        http_request = "GET https://rambler.ru/ HTTP/1.1\r\n" + \
+                       "Host: rambler.ru\r\n" + \
+                       "Content-Length: 0\r\n\r\n"
+        params = {
+            'ip': {
+                'src': socket.inet_aton('1.1.1.1')
+            }
+        }
+        ethernet = self.generate_custom_http_request_packet(
+            http_request,
+            params
+        )
+        data = [{
+            'timestamp': 1489136209.000001,
+            'data': ethernet.__bytes__()
+        }]
+        filename = prepare_data_file(data)
+        reader = pcaper.HTTPRequest()
+
+        packets = 0
+        for request in reader.read_pcap({
+            'input': filename,
+            'exfilter': 'ip.src == 1.1.1.1'
+            }
+        ):
+            assert request['origin'] == http_request, \
+                "unexpected http request data"
+            packets = packets + 1
+        assert packets == 0, "unexpected packets count"
+
+        packets = 0
+        for request in reader.read_pcap({
+            'input': filename,
+            'exfilter': 'ip.src == 1.1.1.2'
+            }
+        ):
+            packets = packets + 1
+        assert packets == 1, "unexpected packets count"
+
+    @pytest.mark.positive
+    def test_read_pcap_http_request_with_filter_and_exfilter_by_src(
+        self,
+        prepare_data_file
+    ):
+        """Check pcap_reader excludes packets by ip.src correctly"""
+
+        http_request = "GET https://rambler.ru/ HTTP/1.1\r\n" + \
+                       "Host: rambler.ru\r\n" + \
+                       "Content-Length: 0\r\n\r\n"
+        params1 = {
+            'ip': {
+                'src': socket.inet_aton('1.1.1.1')
+            }
+        }
+        ethernet1 = self.generate_custom_http_request_packet(
+            http_request,
+            params1
+        )
+        params2 = {
+            'ip': {
+                'src': socket.inet_aton('1.1.1.2')
+            }
+        }
+        ethernet2 = self.generate_custom_http_request_packet(
+            http_request,
+            params2
+        )
+        data = [
+            {
+                'timestamp': 1489136209.000001,
+                'data': ethernet1.__bytes__()
+            },
+            {
+                'timestamp': 1489136209.000002,
+                'data': ethernet2.__bytes__()
+            }
+        ]
+        filename = prepare_data_file(data)
+        reader = pcaper.HTTPRequest()
+
+        packets = 0
+        for request in reader.read_pcap({
+            'input': filename,
+            'filter': 'ip.src == 1.1.1.1',
+            'exfilter': 'ip.src == 1.1.1.2'
+            }
+        ):
+            packets = packets + 1
+            assert request['src'] == '1.1.1.1'
+        assert packets == 1, "unexpected packets count"
+
+        packets = 0
+        for request in reader.read_pcap({
+            'input': filename,
+            'filter': 'ip.src == 1.1.1.2',
+            'exfilter': 'ip.src == 1.1.1.1'
+            }
+        ):
+            packets = packets + 1
+            assert request['src'] == '1.1.1.2'
+        assert packets == 1, "unexpected packets count"
+
+        packets = 0
+        for request in reader.read_pcap({
+            'input': filename,
+            'filter': 'ip.src == 1.1.1.2',
+            'exfilter': 'ip.src == 1.1.1.2'
+            }
+        ):
+            packets = packets + 1
+        assert packets == 0, "unexpected packets count"
+
+        packets = 0
+        for request in reader.read_pcap({
+            'input': filename,
+            'filter': 'ip.src == 1.1.1.1',
+            'exfilter': 'ip.src == 1.1.1.1'
+            }
+        ):
+            packets = packets + 1
+        assert packets == 0, "unexpected packets count"
+
+        packets = 0
+        for request in reader.read_pcap({
+            'input': filename,
+            'filter': 'ip.src == 1.1.1.3',
+            'exfilter': 'ip.src == 1.1.1.3'
+            }
+        ):
+            packets = packets + 1
+        assert packets == 0, "unexpected packets count"
+
+        packets = 0
+        for request in reader.read_pcap({
+            'input': filename,
+            'filter': 'ip.src == 1.1.1.1 or ip.src == 1.1.1.2',
+            'exfilter': 'ip.src == 1.1.1.2 or ip.src == 1.1.1.1'
             }
         ):
             packets = packets + 1
@@ -854,6 +1060,7 @@ class TestPcaper(object):
         }]
         filename = prepare_data_file(data)
         reader = pcaper.HTTPRequest()
+
         packets = 0
         for request in reader.read_pcap({
             'input': filename
@@ -884,6 +1091,7 @@ class TestPcaper(object):
         }]
         filename = prepare_data_file(data)
         reader = pcaper.HTTPRequest()
+
         packets = 0
         for request in reader.read_pcap({
             'input': filename
@@ -913,6 +1121,7 @@ class TestPcaper(object):
         }]
         filename = prepare_data_file(data)
         reader = pcaper.HTTPRequest()
+
         packets = 0
         for request in reader.read_pcap({
             'input': filename,
@@ -943,6 +1152,7 @@ class TestPcaper(object):
         }]
         filename = prepare_data_file(data)
         reader = pcaper.HTTPRequest()
+
         packets = 0
         for request in reader.read_pcap({
             'input': filename
@@ -963,6 +1173,7 @@ class TestPcaper(object):
         """Check pcap_reader handle pcapng format exception"""
 
         reader = pcaper.HTTPRequest()
+
         packets = 0
         filename = remove_data_file()
         file_handler = open(filename, "wb")

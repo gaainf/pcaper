@@ -35,6 +35,7 @@ class HTTPRequest:
             params (dict): input parameters
                 "input" : input pcap filename
                 "filter": tcp/ip packet filter
+                "exfilter": exclude tcp/ip packet filter
         """
 
         self.info = OrderedDict()
@@ -62,6 +63,11 @@ class HTTPRequest:
             params["filter"] = self.prepare_filter(params["filter"])
         else:
             params["filter"] = None
+        if "exfilter" in params:
+            params["exfilter"] = \
+                self.prepare_filter(params["exfilter"])
+        else:
+            params["exfilter"] = None
         for timestamp, packet in pcap:
             eth_packet = dpkt.ethernet.Ethernet(packet)
             ip_packet = eth_packet.data
@@ -77,48 +83,63 @@ class HTTPRequest:
                 if tcp_packet.sport in streams:
                     self.info["incomplete"] = self.info["incomplete"] + 1
                     del streams[tcp_packet.sport]
+                continue
             # filter tcp packets
-            elif (not params["filter"]
-                    or self.filter_packet(
-                        params["filter"],
-                        eth_packet,
-                        ip_packet,
-                        tcp_packet
-                    )) and tcp_packet.data != '':  # not empty data
-                # HTTP request
-                if self.starts_with_http_method(tcp_packet.data):
-                    self.info["total"] = self.info["total"] + 1
-                    streams[tcp_packet.sport] = {
-                        'data': tcp_packet.data,
-                        'timestamp': timestamp
-                    }
-                # the next packet
-                elif tcp_packet.sport in streams:
-                    streams[tcp_packet.sport]['data'] = \
-                        streams[tcp_packet.sport]['data'] + tcp_packet.data
-                else:
-                    continue
-                if tcp_packet.sport in streams:
-                    http_request = self.parse_request(
-                        streams[tcp_packet.sport]['data']
-                    )
-                    if http_request is None:
-                        self.info["incorrect"] = self.info['incorrect'] + 1
-                        del streams[tcp_packet.sport]
-                        continue
-                    http_request['origin'] = \
-                        streams[tcp_packet.sport]['data']
-                    http_request['timestamp'] = \
-                        streams[tcp_packet.sport]['timestamp']
-                    if not self.is_complete_request(http_request):
-                        continue
-                    self.info["complete"] = self.info["complete"] + 1
+            # not empty
+            if tcp_packet.data == '':
+                continue
+            # check filter
+            if (params["filter"]
+                and not self.filter_packet(
+                    params["filter"],
+                    eth_packet,
+                    ip_packet,
+                    tcp_packet
+                    )):
+                continue
+            # check excluding filter
+            if (params["exfilter"]
+                and self.filter_packet(
+                    params["exfilter"],
+                    eth_packet,
+                    ip_packet,
+                    tcp_packet
+                    )):
+                continue
+            # HTTP request
+            if self.starts_with_http_method(tcp_packet.data):
+                self.info["total"] = self.info["total"] + 1
+                streams[tcp_packet.sport] = {
+                    'data': tcp_packet.data,
+                    'timestamp': timestamp
+                }
+            # the next packet
+            elif tcp_packet.sport in streams:
+                streams[tcp_packet.sport]['data'] = \
+                    streams[tcp_packet.sport]['data'] + tcp_packet.data
+            else:
+                continue
+            if tcp_packet.sport in streams:
+                http_request = self.parse_request(
+                    streams[tcp_packet.sport]['data']
+                )
+                if http_request is None:
+                    self.info["incorrect"] = self.info['incorrect'] + 1
                     del streams[tcp_packet.sport]
-                    http_request['src'] = socket.inet_ntoa(ip_packet.src)
-                    http_request['dst'] = socket.inet_ntoa(ip_packet.dst)
-                    http_request['sport'] = tcp_packet.sport
-                    http_request['dport'] = tcp_packet.dport
-                    yield http_request
+                    continue
+                http_request['origin'] = \
+                    streams[tcp_packet.sport]['data']
+                http_request['timestamp'] = \
+                    streams[tcp_packet.sport]['timestamp']
+                if not self.is_complete_request(http_request):
+                    continue
+                self.info["complete"] = self.info["complete"] + 1
+                del streams[tcp_packet.sport]
+                http_request['src'] = socket.inet_ntoa(ip_packet.src)
+                http_request['dst'] = socket.inet_ntoa(ip_packet.dst)
+                http_request['sport'] = tcp_packet.sport
+                http_request['dport'] = tcp_packet.dport
+                yield http_request
 
         self.info["incomplete"] = self.info["incomplete"] + len(streams)
         input_file_handler.close()

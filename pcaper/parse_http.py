@@ -30,7 +30,8 @@ def parse_args():
     )
     parser.add_argument('input', help='the pcap file to parse')
     parser.add_argument('-o', '--output', help='output filename')
-    parser.add_argument('-f', '--filter', help='pcap filter')
+    parser.add_argument('-f', '--filter', help='tcp/ip filter')
+    parser.add_argument('-e', '--exfilter', help='tcp/ip excluding filter')
     parser.add_argument(
         '-s', '--stats', help='print stats', action='store_true'
     )

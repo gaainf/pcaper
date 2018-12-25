@@ -86,10 +86,25 @@ You can combine tcp and ip filters in dpkt style
 
 .. code:: python
 
-    params2 = {
+    reader = pcaper.HTTPRequest()
+    params = {
         'input': 'file.pcap',
         'filter': '(ip.src == 10.4.0.136 or ip.dst == 10.1.40.61) and tcp.dport == 8888'
     }
+    for request in reader.read_pcap(params):
+        print request['origin']
+
+It is possible to use excluding filter in dpkt style
+
+.. code:: python
+
+    reader = pcaper.HTTPRequest()
+    params = {
+        'input': 'file.pcap',
+        'exfilter': 'tcp.dport == 8888 and ip.dst == 10.1.40.61'
+    }
+    for request in reader.read_pcap(params):
+        print request['origin']
 
 Notes
 *****************************
@@ -125,7 +140,7 @@ Filter HTTP requests and write to external file:
 
 .. code:: bash
 
-    parse_http -f "tcp.dport == 8080" -o file.out file.pcap
+    parse_http -f "tcp.dport == 8080" -e "ip.dst == 10.10.10.10" -o file.out file.pcap
 
 Print statistics about counted requests:
 

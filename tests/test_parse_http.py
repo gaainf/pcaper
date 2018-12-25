@@ -155,6 +155,7 @@ class TestParseHttp(object):
             'stats': False,
             'stats_only': False,
             'filter': None,
+            'exfilter': None,
         })
         captured = capsys.readouterr()
         assert captured.out == \
@@ -194,6 +195,7 @@ class TestParseHttp(object):
             'stats': False,
             'stats_only': False,
             'filter': 'ip.src == 10.4.0.136',
+            'exfilter': None,
         })
         captured = capsys.readouterr()
         assert captured.out == \
@@ -207,6 +209,112 @@ class TestParseHttp(object):
             'stats': False,
             'stats_only': False,
             'filter': 'ip.src == 10.4.1.136',
+            'exfilter': None,
+        })
+        captured = capsys.readouterr()
+        assert captured.out == "", "unexpected output"
+
+    @pytest.mark.positive
+    def test_parse_http_exfilter(
+        self,
+        prepare_data_file,
+        capsys
+    ):
+        """Check main function parse input file 
+        with exclude-filter correctly"""
+
+        http_request = "GET https://rambler.ru/ HTTP/1.1\r\n" + \
+                       "Host: rambler.ru\r\n" + \
+                       "Content-Length: 0\r\n\r\n"
+        params = {
+            'ip': {
+                'src': socket.inet_aton('10.4.0.136')
+            }
+        }
+        ethernet = self.generate_custom_http_request_packet(
+            http_request,
+            params
+        )
+        data = [{
+            'timestamp': 1489136209.000001,
+            'data': ethernet.__bytes__()
+        }]
+        filename = prepare_data_file(data)
+
+        # match filter
+        parse_http.parse_http({
+            'input': filename,
+            'output': False,
+            'stats': False,
+            'stats_only': False,
+            'filter': None,
+            'exfilter': 'ip.src == 10.4.1.136',
+        })
+        captured = capsys.readouterr()
+        assert captured.out == \
+            "1489136209.000001: [10.4.0.136:40318 -> 10.10.10.2:8888]\n" + \
+            http_request + "\n", "unexpected output"
+
+        # unmatch filter
+        parse_http.parse_http({
+            'input': filename,
+            'output': False,
+            'stats': False,
+            'stats_only': False,
+            'filter': None,
+            'exfilter': 'ip.src == 10.4.0.136',
+        })
+        captured = capsys.readouterr()
+        assert captured.out == "", "unexpected output"
+
+    @pytest.mark.positive
+    def test_parse_http_filter_and_exfilter(
+        self,
+        prepare_data_file,
+        capsys
+    ):
+        """Check main function parse input file with excluding filter correctly"""
+
+        http_request = "GET https://rambler.ru/ HTTP/1.1\r\n" + \
+                       "Host: rambler.ru\r\n" + \
+                       "Content-Length: 0\r\n\r\n"
+        params = {
+            'ip': {
+                'src': socket.inet_aton('10.4.0.136')
+            }
+        }
+        ethernet = self.generate_custom_http_request_packet(
+            http_request,
+            params
+        )
+        data = [{
+            'timestamp': 1489136209.000001,
+            'data': ethernet.__bytes__()
+        }]
+        filename = prepare_data_file(data)
+
+        # match filter
+        parse_http.parse_http({
+            'input': filename,
+            'output': False,
+            'stats': False,
+            'stats_only': False,
+            'filter': 'ip.src == 10.4.0.136',
+            'exfilter': 'ip.src == 10.4.1.136',
+        })
+        captured = capsys.readouterr()
+        assert captured.out == \
+            "1489136209.000001: [10.4.0.136:40318 -> 10.10.10.2:8888]\n" + \
+            http_request + "\n", "unexpected output"
+
+        # unmatch filter
+        parse_http.parse_http({
+            'input': filename,
+            'output': False,
+            'stats': False,
+            'stats_only': False,
+            'filter': 'ip.src == 10.4.0.136',
+            'exfilter': 'ip.src == 10.4.0.136',
         })
         captured = capsys.readouterr()
         assert captured.out == "", "unexpected output"
@@ -234,6 +342,7 @@ class TestParseHttp(object):
             'stats': False,
             'stats_only': False,
             'filter': None,
+            'exfilter': None,
         })
         captured = capsys.readouterr()
         assert captured.out == "", "output is not empty"
@@ -266,6 +375,7 @@ class TestParseHttp(object):
             'stats': False,
             'stats_only': True,
             'filter': None,
+            'exfilter': None,
         })
         captured = capsys.readouterr()
         assert captured.out == \
@@ -295,6 +405,7 @@ class TestParseHttp(object):
             'stats': True,
             'stats_only': False,
             'filter': None,
+            'exfilter': None,
         })
         captured = capsys.readouterr()
         assert captured.out == \
@@ -317,5 +428,6 @@ class TestParseHttp(object):
                 'stats': False,
                 'stats_only': False,
                 'filter': None,
+                'exfilter': None,
             })
         assert e.value.args[0] == 'input filename is not specified or empty'
