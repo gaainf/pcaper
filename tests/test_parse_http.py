@@ -155,7 +155,7 @@ class TestParseHttp(object):
             'stats': False,
             'stats_only': False,
             'filter': None,
-            'exfilter': None,
+            'http_filter': None,
         })
         captured = capsys.readouterr()
         assert captured.out == \
@@ -195,7 +195,7 @@ class TestParseHttp(object):
             'stats': False,
             'stats_only': False,
             'filter': 'ip.src == 10.4.0.136',
-            'exfilter': None,
+            'http_filter': None,
         })
         captured = capsys.readouterr()
         assert captured.out == \
@@ -209,13 +209,13 @@ class TestParseHttp(object):
             'stats': False,
             'stats_only': False,
             'filter': 'ip.src == 10.4.1.136',
-            'exfilter': None,
+            'http_filter': None,
         })
         captured = capsys.readouterr()
         assert captured.out == "", "unexpected output"
 
     @pytest.mark.positive
-    def test_parse_http_exfilter(
+    def test_parse_http_http_filter(
         self,
         prepare_data_file,
         capsys
@@ -248,7 +248,7 @@ class TestParseHttp(object):
             'stats': False,
             'stats_only': False,
             'filter': None,
-            'exfilter': 'ip.src == 10.4.1.136',
+            'http_filter': '"rambler" in http.uri',
         })
         captured = capsys.readouterr()
         assert captured.out == \
@@ -262,13 +262,13 @@ class TestParseHttp(object):
             'stats': False,
             'stats_only': False,
             'filter': None,
-            'exfilter': 'ip.src == 10.4.0.136',
+            'http_filter': '"rambler" not in http.uri',
         })
         captured = capsys.readouterr()
         assert captured.out == "", "unexpected output"
 
     @pytest.mark.positive
-    def test_parse_http_filter_and_exfilter(
+    def test_parse_filter_and_http_filter(
         self,
         prepare_data_file,
         capsys
@@ -301,7 +301,7 @@ class TestParseHttp(object):
             'stats': False,
             'stats_only': False,
             'filter': 'ip.src == 10.4.0.136',
-            'exfilter': 'ip.src == 10.4.1.136',
+            'http_filter': '"rambler" in http.uri',
         })
         captured = capsys.readouterr()
         assert captured.out == \
@@ -315,7 +315,7 @@ class TestParseHttp(object):
             'stats': False,
             'stats_only': False,
             'filter': 'ip.src == 10.4.0.136',
-            'exfilter': 'ip.src == 10.4.0.136',
+            'http_filter': '"rambler" not in http.uri',
         })
         captured = capsys.readouterr()
         assert captured.out == "", "unexpected output"
@@ -343,7 +343,7 @@ class TestParseHttp(object):
             'stats': False,
             'stats_only': False,
             'filter': None,
-            'exfilter': None,
+            'http_filter': None,
         })
         captured = capsys.readouterr()
         assert captured.out == "", "output is not empty"
@@ -376,7 +376,7 @@ class TestParseHttp(object):
             'stats': False,
             'stats_only': True,
             'filter': None,
-            'exfilter': None,
+            'http_filter': None,
         })
         captured = capsys.readouterr()
         assert captured.out == \
@@ -406,7 +406,7 @@ class TestParseHttp(object):
             'stats': True,
             'stats_only': False,
             'filter': None,
-            'exfilter': None,
+            'http_filter': None,
         })
         captured = capsys.readouterr()
         assert captured.out == \
@@ -429,6 +429,6 @@ class TestParseHttp(object):
                 'stats': False,
                 'stats_only': False,
                 'filter': None,
-                'exfilter': None,
+                'http_filter': None,
             })
         assert e.value.args[0] == 'input filename is not specified or empty'

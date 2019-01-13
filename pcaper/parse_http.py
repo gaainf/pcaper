@@ -30,8 +30,8 @@ def parse_args():
     )
     parser.add_argument('input', help='the pcap file to parse')
     parser.add_argument('-o', '--output', help='output filename')
-    parser.add_argument('-f', '--filter', help='tcp/ip filter')
-    parser.add_argument('-e', '--exfilter', help='tcp/ip excluding filter')
+    parser.add_argument('-f', '--filter', help='TCP/IP packet filter')
+    parser.add_argument('-F', '--http-filter', help='HTTP packet filter')
     parser.add_argument(
         '-s', '--stats', help='print stats', action='store_true'
     )
@@ -64,12 +64,12 @@ def parse_http(args):
     else:
         for request in reader.read_pcap(args):
             file_handler.write("%0.6f: [%s:%d -> %s:%d]\n%s\n" % (
-                request['timestamp'],
-                request['src'],
-                request['sport'],
-                request['dst'],
-                request['dport'],
-                request['origin']
+                request.timestamp,
+                request.src,
+                request.sport,
+                request.dst,
+                request.dport,
+                request.origin
             ))
     if file_handler is not sys.stdout:
         file_handler.close()

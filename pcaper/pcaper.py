@@ -34,8 +34,8 @@ class HTTPRequest:
         Args:
             params (dict): input parameters
                 "input" : input pcap filename
-                "filter": tcp/ip packet filter
-                "exfilter": exclude tcp/ip packet filter
+                "filter": TCP/IP packet filter
+                "http_filter": HTTP packet filter
         """
 
         self.info = OrderedDict()
@@ -63,11 +63,9 @@ class HTTPRequest:
             params["filter"] = self.prepare_filter(params["filter"])
         else:
             params["filter"] = None
-        if "exfilter" in params:
-            params["exfilter"] = \
-                self.prepare_filter(params["exfilter"])
-        else:
-            params["exfilter"] = None
+        if "http_filter" not in params:
+            params["http_filter"] = None
+
         for timestamp, packet in pcap:
             eth_packet = dpkt.ethernet.Ethernet(packet)
             ip_packet = eth_packet.data
@@ -92,15 +90,6 @@ class HTTPRequest:
             if (params["filter"]
                 and not self.filter_packet(
                     params["filter"],
-                    eth_packet,
-                    ip_packet,
-                    tcp_packet
-                    )):
-                continue
-            # check excluding filter
-            if (params["exfilter"]
-                and self.filter_packet(
-                    params["exfilter"],
                     eth_packet,
                     ip_packet,
                     tcp_packet
@@ -139,10 +128,42 @@ class HTTPRequest:
                 http_request['dst'] = socket.inet_ntoa(ip_packet.dst)
                 http_request['sport'] = tcp_packet.sport
                 http_request['dport'] = tcp_packet.dport
-                yield http_request
+                http_request_packet = self.build_http_request_packet(
+                    http_request
+                )
+                if not self.filter_http_packet(
+                    params['http_filter'],
+                    http_request_packet
+                ):
+                    continue
+                yield http_request_packet
 
         self.info["incomplete"] = self.info["incomplete"] + len(streams)
         input_file_handler.close()
+
+    def build_http_request_packet(self, request_dict):
+        """Convert HTTP request as dict to dpkt.http.Request object
+
+        Args:
+            request_dict (dict): HTTP request fields
+
+        Returns:
+            dpkt.http.Request: returns dpkt.http.Request object
+        """
+
+        request = dpkt.http.Request()
+        request.version = request_dict["version"]
+        request.uri = request_dict["uri"]
+        request.method = request_dict["method"]
+        request.headers = request_dict["headers"]
+        request.body = request_dict["body"] if 'body' in request_dict else u''
+        request.timestamp = request_dict['timestamp']
+        request.src = request_dict['src']
+        request.sport = request_dict['sport']
+        request.dst = request_dict['dst']
+        request.dport = request_dict['dport']
+        request.origin = request_dict['origin']
+        return request
 
     def tcp_flags(self, flags):
         """Identify TCP ack flags
@@ -201,7 +222,10 @@ class HTTPRequest:
         """
 
         def inet_filter(element):
-            match = re.search(r'(ip.(?:src|dst) *== *)(.+)', element)
+            match = re.search(
+                r'(ip.(?:src|dst).*?)(["\']?[\d\.]+["\']?)',
+                element
+            )
             if match:
                 return "%ssocket.inet_aton('%s')" % \
                     (match.group(1), match.group(2))
@@ -209,7 +233,7 @@ class HTTPRequest:
 
         if filter_string:
             return re.sub(
-                r'(ip.(?:src|dst) *== *[\d.]+)',
+                r'(ip.(?:src|dst).*?)(["\']?[\d\.]+["\']?)',
                 lambda m: inet_filter(m.group()),
                 filter_string
             )
@@ -228,6 +252,21 @@ class HTTPRequest:
         Returns:
             bool: returns True if all provided packets
                   are corresponding filter expression
+        """
+
+        if filter_string is not None:
+            return eval(filter_string)
+        return True
+
+    def filter_http_packet(self, filter_string, http):
+        """Filter HTTP packet
+        Args:
+            filter_string (string): Packet filter
+            http (dpkt.http): dpkt HTTP packet
+
+        Returns:
+            bool: returns True if HTTP packet
+                  is corresponding filter expression
         """
 
         if filter_string is not None:

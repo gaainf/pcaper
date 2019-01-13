@@ -38,7 +38,7 @@ Examples
 ********
 
 Iterate HTTP requests
-*****************************
+*********************
 
 Read pcap file, assemble and iterate HTTP requests
 
@@ -49,10 +49,10 @@ Read pcap file, assemble and iterate HTTP requests
         'input': 'file.pcap',
     }
     for request in reader.read_pcap(params):
-        print request['origin']
+        print request.origin
 
-Extract http headers
-*****************************
+Extract HTTP request headers
+****************************
 
 You can extract header by name
 
@@ -63,11 +63,11 @@ You can extract header by name
         'input': 'file.pcap',
     }
     for request in reader.read_pcap(params):
-        print request['headers']['host']
-        print request['headers']['content-length']
+        print request.headers['host']
+        print request.headers['user-agent']
 
-Filter packets
-*****************************
+Filter TCP/IP packets
+*********************
 
 It is possible to filter out excess packets
 
@@ -79,7 +79,7 @@ It is possible to filter out excess packets
         'filter': 'tcp.dst == 1.1.1.1'
     }
     for request in reader.read_pcap(params):
-        print request['origin']
+        print request.origin
 
 
 You can combine tcp and ip filters in dpkt style
@@ -92,7 +92,7 @@ You can combine tcp and ip filters in dpkt style
         'filter': '(ip.src == 10.4.0.136 or ip.dst == 10.1.40.61) and tcp.dport == 8888'
     }
     for request in reader.read_pcap(params):
-        print request['origin']
+        print request.origin
 
 It is possible to use excluding filter in dpkt style
 
@@ -101,13 +101,25 @@ It is possible to use excluding filter in dpkt style
     reader = pcaper.HTTPRequest()
     params = {
         'input': 'file.pcap',
-        'exfilter': 'tcp.dport == 8888 and ip.dst == 10.1.40.61'
+        'filter': 'tcp.dport != 8888 and ip.dst != 10.1.40.61'
     }
     for request in reader.read_pcap(params):
-        print request['origin']
+        print request.origin
 
 Notes
-*****************************
+*****
+
+Such fields of HTTP request are available as:
+- `timestamp` - the last packet timestamp of HTTP request
+- `src` - source IP address
+- `dst` - destination IP address
+- `sport` - source port
+- `dport` - destination port
+- `method` - HTTP request method
+- `version` - HTTP protocol version
+- `uri` - HTTP request URI
+- `headers` - ordered dict of HTTP headers
+- `body` - HTTP request body
 
 New `pcapng format <https://pcapng.github.io/pcapng//>`_ is not supported by `dpkt <https://github.com/kbandla/dpkt/>`_ package,
 but you can convert input file from `pcapng` to `pcap` format
@@ -117,9 +129,9 @@ with standard utility, which is installed with `wireshark <https://www.wireshark
 
     mergecap file.pcapng -w out.pcap -F pcap
 
-************
+*******
 Scripts
-************
+*******
 
 parse_http
 **********
@@ -136,11 +148,35 @@ Print HTTP requests from pcap file:
 
     parse_http file.pcap
 
-Filter HTTP requests and write to external file:
+Filter TCP/IP packets, extract HTTP requests and write to external file:
 
 .. code:: bash
 
     parse_http -f "tcp.dport == 8080" -e "ip.dst == 10.10.10.10" -o file.out file.pcap
+
+Filter HTTP packets
+
+.. code:: bash
+
+    pcap2ammo -i file.pcap -F '"rambler.ru" in http.uri'
+
+You can use logical expressions in filters
+
+.. code:: bash
+
+    pcap2ammo -i file.pcap -F '"keep-alive" in http.headers["connection"] or "Keep-alive" in http.headers["connection"]'
+
+Standard Python string functions over HTTP request headers
+
+.. code:: bash
+
+    pcap2ammo -i file.pcap -F '"keep-alive" in http.headers["connection"].lower()'
+
+Use excluding filters also
+
+.. code:: bash
+
+    pcap2ammo -i file.pcap -F '"rambler.ru" not in http.uri'
 
 Print statistics about counted requests:
 
