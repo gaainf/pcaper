@@ -152,7 +152,7 @@ Filter TCP/IP packets, extract HTTP requests and write to external file:
 
 .. code:: bash
 
-    parse_http -f "tcp.dport == 8080" -e "ip.dst == 10.10.10.10" -o file.out file.pcap
+    parse_http -f "tcp.dport == 8080 and ip.dst != 10.10.10.10" -o file.out file.pcap
 
 Filter HTTP packets
 
