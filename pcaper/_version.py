@@ -7,4 +7,4 @@
 # See LICENSE file in the project root for full license information.
 #
 
-__version__ = '1.0.4'
+__version__ = '1.0.5'
