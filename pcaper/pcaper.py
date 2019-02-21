@@ -16,9 +16,10 @@ from dpkt.compat import BytesIO
 import re
 from six import string_types
 from collections import OrderedDict
+from HTTPRequest import HTTPRequest
 
 
-class HTTPRequest:
+class PcapParser:
     """HTTP requests iterator"""
 
     def __init__(self):
@@ -128,9 +129,7 @@ class HTTPRequest:
                 http_request['dst'] = socket.inet_ntoa(ip_packet.dst)
                 http_request['sport'] = tcp_packet.sport
                 http_request['dport'] = tcp_packet.dport
-                http_request_packet = self.build_http_request_packet(
-                    http_request
-                )
+                http_request_packet = HTTPRequest(http_request)
                 if not self.filter_http_packet(
                     params['http_filter'],
                     http_request_packet
@@ -140,30 +139,6 @@ class HTTPRequest:
 
         self.info["incomplete"] = self.info["incomplete"] + len(streams)
         input_file_handler.close()
-
-    def build_http_request_packet(self, request_dict):
-        """Convert HTTP request as dict to dpkt.http.Request object
-
-        Args:
-            request_dict (dict): HTTP request fields
-
-        Returns:
-            dpkt.http.Request: returns dpkt.http.Request object
-        """
-
-        request = dpkt.http.Request()
-        request.version = request_dict["version"]
-        request.uri = request_dict["uri"]
-        request.method = request_dict["method"]
-        request.headers = request_dict["headers"]
-        request.body = request_dict["body"] if 'body' in request_dict else u''
-        request.timestamp = request_dict['timestamp']
-        request.src = request_dict['src']
-        request.sport = request_dict['sport']
-        request.dst = request_dict['dst']
-        request.dport = request_dict['dport']
-        request.origin = request_dict['origin']
-        return request
 
     def tcp_flags(self, flags):
         """Identify TCP ack flags

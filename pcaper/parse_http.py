@@ -11,7 +11,7 @@
 extract HTTP requests including headers and body"""
 
 import argparse
-from pcaper import HTTPRequest
+from pcaper import PcapParser
 from . import _version
 import sys
 
@@ -52,7 +52,7 @@ def parse_http(args):
         args (dict): console arguments
     """
 
-    reader = HTTPRequest()
+    reader = PcapParser()
 
     if args['output']:
         file_handler = open(args['output'], "w")

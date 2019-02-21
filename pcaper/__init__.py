@@ -8,9 +8,11 @@
 #
 """Global constants"""
 
-from .pcaper import HTTPRequest
+from .HTTPRequest import HTTPRequest
+from .pcaper import PcapParser
 from ._version import __version__
 
 __all__ = [
     "HTTPRequest",
+    "PcapParser",
     "__version__"]

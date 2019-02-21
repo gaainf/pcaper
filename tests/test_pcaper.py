@@ -370,7 +370,7 @@ class TestPcaper(object):
             'data': ethernet.__bytes__()
         }]
         filename = prepare_data_file(data)
-        reader = pcaper.HTTPRequest()
+        reader = pcaper.PcapParser()
 
         packets = 0
         for request in reader.read_pcap({
@@ -406,7 +406,7 @@ class TestPcaper(object):
             'data': ethernet.__bytes__()
         }]
         filename = prepare_data_file(data)
-        reader = pcaper.HTTPRequest()
+        reader = pcaper.PcapParser()
 
         packets = 0
         for request in reader.read_pcap({
@@ -434,7 +434,7 @@ class TestPcaper(object):
             'data': ethernet.__bytes__()
         }]
         filename = prepare_data_file(data)
-        reader = pcaper.HTTPRequest()
+        reader = pcaper.PcapParser()
 
         packets = 0
         for request in reader.read_pcap({
@@ -457,7 +457,7 @@ class TestPcaper(object):
             'data': ethernet.__bytes__()
         }]
         filename = prepare_data_file(data)
-        reader = pcaper.HTTPRequest()
+        reader = pcaper.PcapParser()
 
         packets = 0
         for request in reader.read_pcap({
@@ -482,7 +482,7 @@ class TestPcaper(object):
             'data': ethernet.__bytes__()
         }]
         filename = prepare_data_file(data)
-        reader = pcaper.HTTPRequest()
+        reader = pcaper.PcapParser()
 
         packets = 0
         for request in reader.read_pcap({
@@ -504,7 +504,7 @@ class TestPcaper(object):
         http_response = "HTTP/1.1 200 OK\r\n\r\n"
         data = self.generate_tcp_session(http_request, http_response)
         filename = prepare_data_file(data)
-        reader = pcaper.HTTPRequest()
+        reader = pcaper.PcapParser()
 
         packets = 0
         for request in reader.read_pcap({
@@ -527,7 +527,7 @@ class TestPcaper(object):
             'data': ethernet.__bytes__()
         }]
         filename = prepare_data_file(data)
-        reader = pcaper.HTTPRequest()
+        reader = pcaper.PcapParser()
 
         packets = 0
         for request in reader.read_pcap({
@@ -542,7 +542,7 @@ class TestPcaper(object):
         """Check starts_with_http_method returns True
         if request starts with method"""
 
-        reader = pcaper.HTTPRequest()
+        reader = pcaper.PcapParser()
         for method in dpkt.http.Request._Request__methods:
             packet = ("%s https://rambler.ru/ HTTP/1.1\r\n" +
                       "Host: rambler.ru\r\n" +
@@ -555,7 +555,7 @@ class TestPcaper(object):
         """Check starts_with_http_method returns False
         if request starts with no method"""
 
-        reader = pcaper.HTTPRequest()
+        reader = pcaper.PcapParser()
         assert reader.starts_with_http_method("some string") is False, \
             "function should return False if not request"
 
@@ -583,7 +583,7 @@ class TestPcaper(object):
             'data': ethernet.__bytes__()
         }]
         filename = prepare_data_file(data)
-        reader = pcaper.HTTPRequest()
+        reader = pcaper.PcapParser()
 
         packets = 0
         for request in reader.read_pcap({
@@ -629,7 +629,7 @@ class TestPcaper(object):
             'data': ethernet.__bytes__()
         }]
         filename = prepare_data_file(data)
-        reader = pcaper.HTTPRequest()
+        reader = pcaper.PcapParser()
 
         packets = 0
         for request in reader.read_pcap({
@@ -675,7 +675,7 @@ class TestPcaper(object):
             'data': ethernet.__bytes__()
         }]
         filename = prepare_data_file(data)
-        reader = pcaper.HTTPRequest()
+        reader = pcaper.PcapParser()
 
         packets = 0
         for request in reader.read_pcap({
@@ -721,7 +721,7 @@ class TestPcaper(object):
             'data': ethernet.__bytes__()
         }]
         filename = prepare_data_file(data)
-        reader = pcaper.HTTPRequest()
+        reader = pcaper.PcapParser()
 
         packets = 0
         for request in reader.read_pcap({
@@ -783,7 +783,7 @@ class TestPcaper(object):
             }
         ]
         filename = prepare_data_file(data)
-        reader = pcaper.HTTPRequest()
+        reader = pcaper.PcapParser()
 
         packets = 0
         for request in reader.read_pcap({
@@ -905,7 +905,7 @@ class TestPcaper(object):
             }
         ]
         filename = prepare_data_file(data)
-        reader = pcaper.HTTPRequest()
+        reader = pcaper.PcapParser()
 
         # tcp.dport == 80 or ip.src == 1.1.1.1
         packets = 0
@@ -987,7 +987,7 @@ class TestPcaper(object):
             }
         ]
         filename = prepare_data_file(data)
-        reader = pcaper.HTTPRequest()
+        reader = pcaper.PcapParser()
 
         # tcp.dport == 80 and ip.src == 1.1.1.2
         packets = 0
@@ -1034,7 +1034,7 @@ class TestPcaper(object):
             'data': ethernet.__bytes__()
         }]
         filename = prepare_data_file(data)
-        reader = pcaper.HTTPRequest()
+        reader = pcaper.PcapParser()
         local_stats = {
             "total": 0,
             "complete": 0,
@@ -1073,7 +1073,7 @@ class TestPcaper(object):
             'data': ethernet.__bytes__()
         }]
         filename = prepare_data_file(data)
-        reader = pcaper.HTTPRequest()
+        reader = pcaper.PcapParser()
 
         packets = 0
         for request in reader.read_pcap({
@@ -1104,7 +1104,7 @@ class TestPcaper(object):
             'data': ethernet.__bytes__()
         }]
         filename = prepare_data_file(data)
-        reader = pcaper.HTTPRequest()
+        reader = pcaper.PcapParser()
 
         packets = 0
         for request in reader.read_pcap({
@@ -1134,7 +1134,7 @@ class TestPcaper(object):
             'data': ethernet.__bytes__()
         }]
         filename = prepare_data_file(data)
-        reader = pcaper.HTTPRequest()
+        reader = pcaper.PcapParser()
 
         packets = 0
         for request in reader.read_pcap({
@@ -1165,7 +1165,7 @@ class TestPcaper(object):
             'data': ethernet.__bytes__()
         }]
         filename = prepare_data_file(data)
-        reader = pcaper.HTTPRequest()
+        reader = pcaper.PcapParser()
 
         packets = 0
         for request in reader.read_pcap({
@@ -1186,7 +1186,7 @@ class TestPcaper(object):
     def test_read_pcap_parse_pcapng_format(self, capsys, remove_data_file):
         """Check pcap_reader handle pcapng format exception"""
 
-        reader = pcaper.HTTPRequest()
+        reader = pcaper.PcapParser()
 
         packets = 0
         filename = remove_data_file()

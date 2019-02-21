@@ -24,14 +24,14 @@ Import
 .. code:: python
 
     import pcaper
-    reader = pcaper.HTTPRequest()
+    reader = pcaper.PcapParser()
 
 or
 
 .. code:: python
 
-    from pcaper import HTTPRequest
-    reader = HTTPRequest()
+    from pcaper import PcapParser
+    reader = PcapParser()
 
 ********
 Examples
@@ -44,7 +44,7 @@ Read pcap file, assemble and iterate HTTP requests
 
 .. code:: python
 
-    reader = pcaper.HTTPRequest()
+    reader = pcaper.PcapParser()
     params = {
         'input': 'file.pcap',
     }
@@ -58,7 +58,7 @@ You can extract header by name
 
 .. code:: python
 
-    reader = pcaper.HTTPRequest()
+    reader = pcaper.PcapParser()
     params = {
         'input': 'file.pcap',
     }
@@ -73,7 +73,7 @@ It is possible to filter out excess packets
 
 .. code:: python
 
-    reader = pcaper.HTTPRequest()
+    reader = pcaper.PcapParser()
     params = {
         'input': 'file.pcap',
         'filter': 'tcp.dst == 1.1.1.1'
@@ -86,7 +86,7 @@ You can combine tcp and ip filters in dpkt style
 
 .. code:: python
 
-    reader = pcaper.HTTPRequest()
+    reader = pcaper.PcapParser()
     params = {
         'input': 'file.pcap',
         'filter': '(ip.src == 10.4.0.136 or ip.dst == 10.1.40.61) and tcp.dport == 8888'
@@ -98,7 +98,7 @@ It is possible to use excluding filter in dpkt style
 
 .. code:: python
 
-    reader = pcaper.HTTPRequest()
+    reader = pcaper.PcapParser()
     params = {
         'input': 'file.pcap',
         'filter': 'tcp.dport != 8888 and ip.dst != 10.1.40.61'
