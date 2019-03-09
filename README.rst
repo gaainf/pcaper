@@ -1,6 +1,6 @@
-==============================
+======
 pcaper
-==============================
+======
 
 .. image:: https://travis-ci.org/travis-ci/travis-web.svg?branch=master
     :target: https://travis-ci.org/travis-ci/travis-web
@@ -8,30 +8,42 @@ pcaper
 .. image:: https://codecov.io/gh/gaainf/pcaper/branch/master/graph/badge.svg
     :target: https://codecov.io/gh/gaainf/pcaper/
 
-Pcaper provides class to read pcap file, assemble and iterate HTTP requests.
-The package based on `dpkt <https://github.com/kbandla/dpkt/>`_.
+Pcaper provides class to read traffic files in pcap or har formats, which helpts to assemble and iterate HTTP requests.
+`PcapParser` based on `dpkt <https://github.com/kbandla/dpkt/>`_. `HarParser` uses built-in json package.
+Executable converters - `pcap2txt` and `har2txt` - scripts are available in the package.
+
+`pcaper` extends dpkt.http.Request class.
+Following fields of HTTP request are available:
+- `timestamp` - timestamp of the last packet of original HTTP request
+- `src` - source IP address
+- `dst` - destination IP address
+- `sport` - source TCP port
+- `dport` - destination TCP port
+- `method` - HTTP request method
+- `version` - HTTP protocol version
+- `uri` - HTTP request URI
+- `headers` - ordered dictionary of HTTP headers
+- `origin_headers` - ordered dictionary HTTP headers with case sensetive names
+- `body` - HTTP request body
+- `origin` - original HTTP request
 
 ************
 Installation
 ************
+
 .. code:: python
 
     pip install pcaper
 
-************
+******
 Import
-************
+******
+
 .. code:: python
 
     import pcaper
-    reader = pcaper.PcapParser()
-
-or
-
-.. code:: python
-
-    from pcaper import PcapParser
-    reader = PcapParser()
+    pcap_parser = pcaper.PcapParser()
+    har_parser = pcaper.HarParser()
 
 ********
 Examples
@@ -44,15 +56,28 @@ Read pcap file, assemble and iterate HTTP requests
 
 .. code:: python
 
-    reader = pcaper.PcapParser()
+    from pcaper import PcapParser
+
+    pcap_parser = PcapParser()
     params = {
         'input': 'file.pcap',
     }
-    for request in reader.read_pcap(params):
-        print request.origin
+    for request in pcap_parser.read_pcap(params):
+        print(request.origin)
 
-Extract HTTP request headers
-****************************
+.. code:: python
+
+    from pcaper import HarParser
+
+    har_parser = HarParser()
+    params = {
+        'input': 'file.har'
+    }
+    for request in har_parser.read_har(params):
+        print(request.origin)
+
+Extract separate HTTP request headers
+*************************************
 
 You can extract header by name
 
@@ -60,11 +85,11 @@ You can extract header by name
 
     reader = pcaper.PcapParser()
     params = {
-        'input': 'file.pcap',
+        'input': 'file.pcap'
     }
     for request in reader.read_pcap(params):
-        print request.headers['host']
-        print request.headers['user-agent']
+        print(request.headers['host'])
+        print(request.headers['user-agent'])
 
 Filter TCP/IP packets
 *********************
@@ -79,7 +104,7 @@ It is possible to filter out excess packets
         'filter': 'tcp.dst == 1.1.1.1'
     }
     for request in reader.read_pcap(params):
-        print request.origin
+        print(request.origin)
 
 
 You can combine tcp and ip filters in dpkt style
@@ -92,7 +117,7 @@ You can combine tcp and ip filters in dpkt style
         'filter': '(ip.src == 10.4.0.136 or ip.dst == 10.1.40.61) and tcp.dport == 8888'
     }
     for request in reader.read_pcap(params):
-        print request.origin
+        print(request.origin)
 
 It is possible to use excluding filter in dpkt style
 
@@ -104,22 +129,7 @@ It is possible to use excluding filter in dpkt style
         'filter': 'tcp.dport != 8888 and ip.dst != 10.1.40.61'
     }
     for request in reader.read_pcap(params):
-        print request.origin
-
-Notes
-*****
-
-Such fields of HTTP request are available as:
-- `timestamp` - the last packet timestamp of HTTP request
-- `src` - source IP address
-- `dst` - destination IP address
-- `sport` - source port
-- `dport` - destination port
-- `method` - HTTP request method
-- `version` - HTTP protocol version
-- `uri` - HTTP request URI
-- `headers` - ordered dict of HTTP headers
-- `body` - HTTP request body
+        print(request.origin)
 
 New `pcapng format <https://pcapng.github.io/pcapng//>`_ is not supported by `dpkt <https://github.com/kbandla/dpkt/>`_ package,
 but you can convert input file from `pcapng` to `pcap` format
@@ -133,10 +143,10 @@ with standard utility, which is installed with `wireshark <https://www.wireshark
 Scripts
 *******
 
-parse_http
-**********
+pcap2txt
+********
 
-The `parse_http` script is installed to Python directory
+The `pcap2txt` script is installed to Python directory
 and can be executed directly in command line
 
 It simplify parsing of pcap files. Just extract HTTP requests
@@ -146,31 +156,31 @@ Print HTTP requests from pcap file:
 
 .. code:: bash
 
-    parse_http file.pcap
+    pcap2txt file.pcap
 
 Filter TCP/IP packets, extract HTTP requests and write to external file:
 
 .. code:: bash
 
-    parse_http -f "tcp.dport == 8080 and ip.dst != 10.10.10.10" -o file.out file.pcap
+    pcap2txt -f "tcp.dport == 8080 and ip.dst != 10.10.10.10" -o file.out file.pcap
 
 Filter HTTP packets
 
 .. code:: bash
 
-    pcap2ammo -i file.pcap -F '"rambler.ru" in http.uri'
+    pcap2txt -i file.pcap -F '"rambler.ru" in http.uri'
 
 You can use logical expressions in filters
 
 .. code:: bash
 
-    pcap2ammo -i file.pcap -F '"keep-alive" in http.headers["connection"] or "Keep-alive" in http.headers["connection"]'
+    pcap2txt -i file.pcap -F '"keep-alive" in http.headers["connection"] or "Keep-alive" in http.headers["connection"]'
 
 Standard Python string functions over HTTP request headers
 
 .. code:: bash
 
-    pcap2ammo -i file.pcap -F '"keep-alive" in http.headers["connection"].lower()'
+    pcap2txt -i file.pcap -F '"keep-alive" in http.headers["connection"].lower()'
 
 Use excluding filters also
 
@@ -182,7 +192,54 @@ Print statistics about counted requests:
 
 .. code:: bash
 
-    parse_http -f "ip.src == 10.10.10.10" -S file.pcap
+    pcap2txt -f "ip.src == 10.10.10.10" -S file.pcap
+
+    Stats:
+        total: 1
+        complete: 1
+        incorrect: 0
+        incomplete: 0
+
+har2txt
+*******
+
+The `har2txt` script is installed to Python directory
+and can be executed directly in command line
+
+It simplify parsing of har files. Just extract HTTP requests
+including its headers and body and print out complete data to console or file.
+
+Print HTTP requests from har file:
+
+.. code:: bash
+
+    har2txt file.har
+
+Filter HTTP packets
+
+.. code:: bash
+
+    har2txt -i file.har -F 'http.verision == "1.1"'
+
+Use excluding filters also
+
+.. code:: bash
+
+    har2txt -i file.pcap -F '"rambler.ru" not in http.uri'
+
+Filter packets with destination IP. 
+`pcaper` extracts data from har file,
+which contains destination IP (`dst` filed), but doesn't contain source IP, source and destination ports.
+
+.. code:: bash
+
+    har2txt -i file.har -F 'http.dst == "1.1.1.1"'
+
+Print statistics about counted requests:
+
+.. code:: bash
+
+    har2txt -S -F 'http.dst == "10.10.10.10' file.har
 
     Stats:
         total: 1

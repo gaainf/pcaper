@@ -25,11 +25,13 @@ setuptools_kwargs = {
     'setup_requires': 'pytest-runner',
     'tests_require': [
         'pytest>=2.7',
-        'pytest-cov>=2.6.0'
+        'pytest-cov>=2.6.0',
+        'mock>=2.0.0'
     ],
     'entry_points': {
         'console_scripts': [
-            'parse_http=pcaper.parse_http:main'
+            'pcap2txt=pcaper.pcap2txt:main',
+            'har2txt=pcaper.har2txt:main'
         ],
     },
 }

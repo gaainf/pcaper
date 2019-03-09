@@ -7,11 +7,11 @@
 # See LICENSE file in the project root for full license information.
 #
 
-"""Parse traffic dump in pcap format
+"""Parse traffic dump in har format
 extract HTTP requests including headers and body"""
 
 import argparse
-from pcaper import PcapParser
+from pcaper import HarParser
 from . import _version
 import sys
 
@@ -24,13 +24,12 @@ def parse_args():
     """
 
     parser = argparse.ArgumentParser(
-        description="Parse traffic dump in pcap format " +
+        description="Parse traffic dump in har format " +
                     "extract HTTP requests including headers and body",
         add_help=True
     )
-    parser.add_argument('input', help='the pcap file to parse')
+    parser.add_argument('input', help='har file to parse')
     parser.add_argument('-o', '--output', help='output filename')
-    parser.add_argument('-f', '--filter', help='TCP/IP packet filter')
     parser.add_argument('-F', '--http-filter', help='HTTP packet filter')
     parser.add_argument(
         '-s', '--stats', help='print stats', action='store_true'
@@ -46,31 +45,33 @@ def parse_args():
     return vars(parser.parse_args())
 
 
-def parse_http(args):
-    """Read pcap file and print HTTP requests
+def har2txt(args):
+    """Read har file and print HTTP requests
     Args:
         args (dict): console arguments
     """
 
-    reader = PcapParser()
+    reader = HarParser()
 
     if args['output']:
         file_handler = open(args['output'], "w")
     else:
         file_handler = sys.stdout
-    if args['stats_only']:
-        for request in reader.read_pcap(args):
-            pass
-    else:
-        for request in reader.read_pcap(args):
-            file_handler.write("%0.6f: [%s:%d -> %s:%d]\n%s\n" % (
-                request.timestamp,
-                request.src,
-                request.sport,
-                request.dst,
-                request.dport,
-                request.origin
-            ))
+    try:
+        if args['stats_only']:
+            for request in reader.read_har(args):
+                pass
+        else:
+            for request in reader.read_har(args):
+                file_handler.write("%0.6f: [* -> %s]\n%s\n" % (
+                    request.timestamp,
+                    request.dst,
+                    request.origin
+                ))
+    except ValueError, e:
+        sys.stderr.write('Error: ' + str(e) + "\n")
+        return 1
+
     if file_handler is not sys.stdout:
         file_handler.close()
 
@@ -79,14 +80,21 @@ def parse_http(args):
         stats = reader.get_stats()
         for key in stats.keys():
             print("\t%s: %d" % (key, stats[key]))
+    return 0
 
 
 def main():
     """The main function"""
 
     args = parse_args()
-    parse_http(args)
+    return har2txt(args)
 
 
-if __name__ == '__main__':
-    main()
+def init():
+    """Testable init function"""
+
+    if __name__ == '__main__':
+        sys.exit(main())
+
+
+init()

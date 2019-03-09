@@ -7,14 +7,16 @@
 # See LICENSE file in the project root for full license information.
 #
 
+import dpkt
+import mock
 import os
 import pytest
 import tempfile
-import dpkt
-from pcaper import parse_http
 import pcaper
+from pcaper import pcap2txt
 import sys
 import socket
+import pcap_gen
 
 
 class TestParseHttp(object):
@@ -64,66 +66,15 @@ class TestParseHttp(object):
         if os.path.isfile(filename['file']):
             os.remove(filename['file'])
 
-    # Additional methods
-
-    def replace_params(self, ethernet, params=[]):
-        if 'tcp' in params:
-            for field in params['tcp']:
-                setattr(ethernet.data.data, field, params['tcp'][field])
-        if 'ip' in params:
-            for field in params['ip']:
-                setattr(ethernet.data, field, params['ip'][field])
-        if 'ethernet' in params:
-            for field in params['ethernet']:
-                setattr(ethernet, field, params['ethernet'][field])
-
-    def generate_custom_http_request_packet(self, data, params=[]):
-        tcp = dpkt.tcp.TCP(
-            b'\x9d\x7e' +                                        # sport
-            b'\x22\xb8' +                                        # dport
-            b'\xb6\xce\xe8\x3d' +                                # seq
-            b'\xb7\x1a\x15\x40' +                                # ack
-            b'\x80' +                                            # len
-            b'\x18' +                                            # flags
-            b'\x0e\x42' +                                        # win
-            b'\x40\xe0' +                                        # chk
-            b'\x00\x00' +                                        # pointer
-            b'\x01\x01\x08\x0a\x3c\x58\x15\xa4\x90\xfd\xa6\xc4'  # options
-        )
-        tcp.data = data.encode("utf-8")
-        ip = dpkt.ip.IP(
-            b'\x45' +              # ver + hlen
-            b'\x00' +              # dsf
-            b'\x04\x24' +          # len
-            b'\xfd\xa1' +          # id
-            b'\x40' +              # flags
-            b'\x00' +              # offset
-            b'\x40' +              # ttl
-            b'\x06' +              # proto
-            b'\xfc\x68' +          # cks
-            b'\x0a\x0a\x0a\x01' +  # src
-            b'\x0a\x0a\x0a\x02'    # dst
-        )
-        ip.len = len(data)
-        ip.data = tcp
-        ethernet = dpkt.ethernet.Ethernet(
-            b'\x00\x00\x00\x00\x00\x02' +  # dmac
-            b'\x00\x00\x00\x00\x00\x01' +  # smac
-            b'\x08\x00'
-        )
-        ethernet.data = ip
-        self.replace_params(ethernet, params)
-        return ethernet
-
     # Tests
 
     @pytest.mark.positive
-    def test_parse_http_version(self, capsys):
+    def test_pcap2txt_version(self, capsys):
         """Check version output"""
 
         with pytest.raises(SystemExit) as system_exit:
             sys.argv.append('-v')
-            parse_http.main()
+            pcap2txt.main()
             sys.argv.remove('-v')
         assert system_exit.value.code == 0
         captured = capsys.readouterr()
@@ -133,7 +84,49 @@ class TestParseHttp(object):
             captured.out == pcaper.__version__ + "\n", "unexpected output"
 
     @pytest.mark.positive
-    def test_parse_http_input_file(
+    def test_pcap2txt_main(
+        self,
+        prepare_data_file,
+        capsys
+    ):
+        """Check main function is worked out properly"""
+
+        http_request = "GET https://rambler.ru/ HTTP/1.1\r\n" + \
+                       "Host: rambler.ru\r\n" + \
+                       "Content-Length: 0\r\n\r\n"
+        ethernet = pcap_gen.generate_custom_http_request_packet(http_request)
+        data = [{
+            'timestamp': 1489136209.000001,
+            'data': ethernet.__bytes__()
+        }]
+        filename = prepare_data_file(data)
+        with mock.patch.object(
+            pcap2txt.sys, 'argv',
+            ['pcap2txt.py', filename]
+        ):
+            pcap2txt.main()
+        captured = capsys.readouterr()
+        # for python2 captured.err
+        # for python3 captured.out
+        assert captured.out == \
+            "1489136209.000001: [10.10.10.1:40318 -> 10.10.10.2:8888]\n" + \
+            http_request + "\n", "unexpected output"
+
+    @pytest.mark.positive
+    def test_pcap2txt_init(
+        self,
+        prepare_data_file
+    ):
+        """Check init function works correctly"""
+
+        with mock.patch.object(pcap2txt, "main", return_value=42):
+            with mock.patch.object(pcap2txt, "__name__", "__main__"):
+                with mock.patch.object(pcap2txt.sys, 'exit') as mock_exit:
+                    pcap2txt.init()
+                    assert mock_exit.call_args[0][0] == 42
+
+    @pytest.mark.positive
+    def test_pcap2txt_input_file(
         self,
         prepare_data_file,
         capsys
@@ -143,13 +136,13 @@ class TestParseHttp(object):
         http_request = "GET https://rambler.ru/ HTTP/1.1\r\n" + \
                        "Host: rambler.ru\r\n" + \
                        "Content-Length: 0\r\n\r\n"
-        ethernet = self.generate_custom_http_request_packet(http_request)
+        ethernet = pcap_gen.generate_custom_http_request_packet(http_request)
         data = [{
             'timestamp': 1489136209.000001,
             'data': ethernet.__bytes__()
         }]
         filename = prepare_data_file(data)
-        parse_http.parse_http({
+        pcap2txt.pcap2txt({
             'input': filename,
             'output': False,
             'stats': False,
@@ -163,7 +156,7 @@ class TestParseHttp(object):
             http_request + "\n", "unexpected output"
 
     @pytest.mark.positive
-    def test_parse_http_filter(
+    def test_pcap2txt_filter(
         self,
         prepare_data_file,
         capsys
@@ -178,7 +171,7 @@ class TestParseHttp(object):
                 'src': socket.inet_aton('10.4.0.136')
             }
         }
-        ethernet = self.generate_custom_http_request_packet(
+        ethernet = pcap_gen.generate_custom_http_request_packet(
             http_request,
             params
         )
@@ -189,7 +182,7 @@ class TestParseHttp(object):
         filename = prepare_data_file(data)
 
         # match filter
-        parse_http.parse_http({
+        pcap2txt.pcap2txt({
             'input': filename,
             'output': False,
             'stats': False,
@@ -203,7 +196,7 @@ class TestParseHttp(object):
             http_request + "\n", "unexpected output"
 
         # unmatch filter
-        parse_http.parse_http({
+        pcap2txt.pcap2txt({
             'input': filename,
             'output': False,
             'stats': False,
@@ -215,7 +208,7 @@ class TestParseHttp(object):
         assert captured.out == "", "unexpected output"
 
     @pytest.mark.positive
-    def test_parse_http_http_filter(
+    def test_pcap2txt_http_filter(
         self,
         prepare_data_file,
         capsys
@@ -231,7 +224,7 @@ class TestParseHttp(object):
                 'src': socket.inet_aton('10.4.0.136')
             }
         }
-        ethernet = self.generate_custom_http_request_packet(
+        ethernet = pcap_gen.generate_custom_http_request_packet(
             http_request,
             params
         )
@@ -242,7 +235,7 @@ class TestParseHttp(object):
         filename = prepare_data_file(data)
 
         # match filter
-        parse_http.parse_http({
+        pcap2txt.pcap2txt({
             'input': filename,
             'output': False,
             'stats': False,
@@ -256,7 +249,7 @@ class TestParseHttp(object):
             http_request + "\n", "unexpected output"
 
         # unmatch filter
-        parse_http.parse_http({
+        pcap2txt.pcap2txt({
             'input': filename,
             'output': False,
             'stats': False,
@@ -284,7 +277,7 @@ class TestParseHttp(object):
                 'src': socket.inet_aton('10.4.0.136')
             }
         }
-        ethernet = self.generate_custom_http_request_packet(
+        ethernet = pcap_gen.generate_custom_http_request_packet(
             http_request,
             params
         )
@@ -295,7 +288,7 @@ class TestParseHttp(object):
         filename = prepare_data_file(data)
 
         # match filter
-        parse_http.parse_http({
+        pcap2txt.pcap2txt({
             'input': filename,
             'output': False,
             'stats': False,
@@ -309,7 +302,7 @@ class TestParseHttp(object):
             http_request + "\n", "unexpected output"
 
         # unmatch filter
-        parse_http.parse_http({
+        pcap2txt.pcap2txt({
             'input': filename,
             'output': False,
             'stats': False,
@@ -321,23 +314,23 @@ class TestParseHttp(object):
         assert captured.out == "", "unexpected output"
 
     @pytest.mark.positive
-    def test_parse_http_output_file(
+    def test_pcap2txt_output_file(
         self,
         prepare_data_file,
         capsys
     ):
-        """Check parse_http write result in output file correctly"""
+        """Check pcap2txt write result in output file correctly"""
 
         http_request = "GET https://rambler.ru/ HTTP/1.1\r\n" + \
                        "Host: rambler.ru\r\n" + \
                        "Content-Length: 0\r\n\r\n"
-        ethernet = self.generate_custom_http_request_packet(http_request)
+        ethernet = pcap_gen.generate_custom_http_request_packet(http_request)
         data = [{
             'timestamp': 1489136209.000001,
             'data': ethernet.__bytes__()
         }]
         filename = prepare_data_file(data)
-        parse_http.parse_http({
+        pcap2txt.pcap2txt({
             'input': filename,
             'output': 'test.out',
             'stats': False,
@@ -354,7 +347,7 @@ class TestParseHttp(object):
         os.remove('test.out')
 
     @pytest.mark.positive
-    def test_parse_http_stats_only(
+    def test_pcap2txt_stats_only(
         self,
         prepare_data_file,
         capsys
@@ -364,13 +357,13 @@ class TestParseHttp(object):
         http_request = "GET https://rambler.ru/ HTTP/1.1\r\n" + \
                        "Host: rambler.ru\r\n" + \
                        "Content-Length: 0\r\n\r\n"
-        ethernet = self.generate_custom_http_request_packet(http_request)
+        ethernet = pcap_gen.generate_custom_http_request_packet(http_request)
         data = [{
             'timestamp': 1489136209.000001,
             'data': ethernet.__bytes__()
         }]
         filename = prepare_data_file(data)
-        parse_http.parse_http({
+        pcap2txt.pcap2txt({
             'input': filename,
             'output': False,
             'stats': False,
@@ -384,7 +377,7 @@ class TestParseHttp(object):
             "incorrect: 0\n\tincomplete: 0\n", "unexpected output"
 
     @pytest.mark.positive
-    def test_parse_http_stats(
+    def test_pcap2txt_stats(
         self,
         prepare_data_file,
         capsys
@@ -394,13 +387,13 @@ class TestParseHttp(object):
         http_request = "GET https://rambler.ru/ HTTP/1.1\r\n" + \
                        "Host: rambler.ru\r\n" + \
                        "Content-Length: 0\r\n\r\n"
-        ethernet = self.generate_custom_http_request_packet(http_request)
+        ethernet = pcap_gen.generate_custom_http_request_packet(http_request)
         data = [{
             'timestamp': 1489136209.000001,
             'data': ethernet.__bytes__()
         }]
         filename = prepare_data_file(data)
-        parse_http.parse_http({
+        pcap2txt.pcap2txt({
             'input': filename,
             'output': False,
             'stats': True,
@@ -416,14 +409,14 @@ class TestParseHttp(object):
             "incorrect: 0\n\tincomplete: 0\n", "unexpected output"
 
     @pytest.mark.negative
-    def test_parse_http_empty_input_file(
+    def test_pcap2txt_empty_input_file(
         self,
         capsys
     ):
         """Check empty input filename"""
 
         with pytest.raises(ValueError) as e:
-            parse_http.parse_http({
+            pcap2txt.pcap2txt({
                 'input': None,
                 'output': False,
                 'stats': False,
