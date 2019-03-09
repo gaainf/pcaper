@@ -8,12 +8,12 @@ pcaper
 .. image:: https://codecov.io/gh/gaainf/pcaper/branch/master/graph/badge.svg
     :target: https://codecov.io/gh/gaainf/pcaper/
 
-Pcaper provides class to read traffic files in pcap or har formats, which helpts to assemble and iterate HTTP requests.
+The package helps to assemble and iterate HTTP requests.
+Pcaper provides class to read traffic files in pcap or har formats, executable converters - `pcap2txt` and `har2txt`.
 `PcapParser` based on `dpkt <https://github.com/kbandla/dpkt/>`_. `HarParser` uses built-in json package.
-Executable converters - `pcap2txt` and `har2txt` - scripts are available in the package.
 
-`pcaper` extends dpkt.http.Request class.
-Following fields of HTTP request are available:
+`pcaper` extends dpkt.http.Request class. Following fields of HTTP request are available:
+
 - `timestamp` - timestamp of the last packet of original HTTP request
 - `src` - source IP address
 - `dst` - destination IP address
@@ -130,6 +130,9 @@ It is possible to use excluding filter in dpkt style
     }
     for request in reader.read_pcap(params):
         print(request.origin)
+
+Note
+****
 
 New `pcapng format <https://pcapng.github.io/pcapng//>`_ is not supported by `dpkt <https://github.com/kbandla/dpkt/>`_ package,
 but you can convert input file from `pcapng` to `pcap` format
