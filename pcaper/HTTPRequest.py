@@ -21,7 +21,8 @@ class HTTPRequest(http.Request):
         self.version = ''
         self.uri = ''
         self.method = ''
-        self.headers = ''
+        self.headers = {}
+        self.origin_headers = {}
         self.body = ''
         self.timestamp = ''
         self.src = ''
@@ -50,6 +51,8 @@ class HTTPRequest(http.Request):
             self.method = request_dict["method"]
         if 'headers' in request_dict:
             self.headers = request_dict["headers"]
+        if 'origin_headers' in request_dict:
+            self.origin_headers = request_dict["origin_headers"]
         if 'body' in request_dict:
             self.body = request_dict["body"]
         if 'timestamp' in request_dict:
