@@ -14,8 +14,8 @@ import dpkt
 import pcaper
 import socket
 import json
-import pcap_gen
-import har_gen
+from pcaper import pcap_gen
+from pcaper import har_gen
 
 
 class TestPcaper(object):
@@ -958,7 +958,7 @@ class TestPcaper(object):
         assert reader_stats['incorrect'] == 1, "unexpected total value"
         assert reader_stats['incomplete'] == 0, "unexpected total value"
 
-    @pytest.mark.positive
+    @pytest.mark.nehative
     def test_read_pcap_parse_pcapng_format(self, capsys, remove_data_file):
         """Check read_pcap method handles pcapng format exception"""
 

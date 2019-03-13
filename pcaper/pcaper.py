@@ -16,7 +16,7 @@ from dpkt.compat import BytesIO
 import re
 from six import string_types
 from collections import OrderedDict
-from HTTPRequest import HTTPRequest
+from .HTTPRequest import HTTPRequest
 import json
 from datetime import datetime
 
@@ -138,7 +138,7 @@ class HTTPParser:
         try:
             request['body'] = ''
             request['body'] = dpkt.http.parse_body(
-                file, request['headers'])
+                file, request['headers']).decode('ascii', 'ignore')
         except (dpkt.dpkt.NeedData, dpkt.dpkt.UnpackError):
             return None
         return request
@@ -180,7 +180,7 @@ class HTTPParser:
         """
 
         lower_headers = OrderedDict()
-        for key, value in headers.iteritems():
+        for key, value in headers.items():
             lower_headers[key.lower()] = value
         return lower_headers
 
@@ -209,13 +209,13 @@ class HTTPParser:
                 [
                     '%s: %s\r\n' % (key, value)
                     for key, value in
-                    http_request['origin_headers'].iteritems()
+                    http_request['origin_headers'].items()
                 ]
             )
         if 'body' in http_request:
             body = http_request['body']
         return '%s\r\n%s\r\n%s' % (
-            base_line, headers, body.decode("utf8", "ignore"))
+            base_line, headers, str(body))  # body.decode("utf8", "ignore")
 
 
 class PcapParser:
@@ -252,7 +252,7 @@ class PcapParser:
         input_file_handler = open(params['input'], 'rb')
         try:
             pcap = dpkt.pcap.Reader(input_file_handler)
-        except ValueError:
+        except ValueError or OSError:
             try:
                 pcap = dpkt.pcapng.Reader(input_file_handler)
             except ValueError:
@@ -270,7 +270,10 @@ class PcapParser:
             params['http_filter'] = None
 
         for timestamp, packet in pcap:
-            eth_packet = dpkt.ethernet.Ethernet(packet)
+            try:
+                eth_packet = dpkt.ethernet.Ethernet(packet)
+            except (dpkt.dpkt.NeedData, dpkt.dpkt.UnpackError):
+                continue
             ip_packet = eth_packet.data
             if not hasattr(ip_packet, 'data'):
                 continue
@@ -482,7 +485,7 @@ class HarParser:
 
         if 'input' not in params or not params['input']:
             raise ValueError('input filename is not specified or empty')
-        file_handler = open(params['input'], "r")
+        file_handler = open(params['input'], 'r')
         data = json.load(file_handler)
         file_handler.close()
         if not('log' in data and 'entries' in data['log']):
@@ -519,10 +522,8 @@ class HarParser:
                         pair['value']
             if 'postData' in entry['request']:
                 http_request['body'] = \
-                    entry['request']['postData']['text'].decode(
-                        'string_escape')
+                    entry['request']['postData']['text']
             if 'startedDateTime' in entry:
-                # TODO: parse time
                 timestamp = datetime.strptime(
                     entry['startedDateTime'],
                     '%Y-%m-%dT%H:%M:%S.%fZ'

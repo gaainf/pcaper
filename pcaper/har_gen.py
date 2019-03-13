@@ -98,11 +98,11 @@ def generate_http_request_har_object(http_request):
             "headersSize": 0,
             "bodySize": 0,
             "postData"
-            if 'body' in request_dict and request_dict['body'] != ''
+            if 'body' in request_dict and request_dict['body']
             else None: {
                 "mimeType": "text/plain;charset=UTF-8",
-                "text": request_dict['body'].encode('string_escape')
-            } if 'body' in request_dict and request_dict['body'] != ''
+                "text": request_dict['body']
+            } if 'body' in request_dict and request_dict['body']
             else None
         },
         "response": {

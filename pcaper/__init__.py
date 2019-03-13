@@ -8,7 +8,7 @@
 #
 """Global constants"""
 
-from .HTTPRequest import HTTPRequest
+from .pcaper import HTTPRequest
 from .pcaper import HTTPParser
 from .pcaper import PcapParser
 from .pcaper import HarParser

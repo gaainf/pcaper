@@ -16,7 +16,7 @@ import pcaper
 from pcaper import pcap2txt
 import sys
 import socket
-import pcap_gen
+from pcaper import pcap_gen
 
 
 class TestParseHttp(object):
@@ -415,13 +415,14 @@ class TestParseHttp(object):
     ):
         """Check empty input filename"""
 
-        with pytest.raises(ValueError) as e:
-            pcap2txt.pcap2txt({
-                'input': None,
-                'output': False,
-                'stats': False,
-                'stats_only': False,
-                'filter': None,
-                'http_filter': None,
-            })
-        assert e.value.args[0] == 'input filename is not specified or empty'
+        pcap2txt.pcap2txt({
+            'input': None,
+            'output': False,
+            'stats': False,
+            'stats_only': False,
+            'http_filter': None
+        })
+        captured = capsys.readouterr()
+        assert captured.err == \
+            "Error: input filename is not specified or empty\n", \
+            "unexpected output"

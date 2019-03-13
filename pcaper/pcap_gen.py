@@ -11,58 +11,13 @@
 import dpkt
 
 
-def replace_params(ethernet, params=[]):
-    if 'tcp' in params:
-        for field in params['tcp']:
-            setattr(ethernet.data.data, field, params['tcp'][field])
-    if 'ip' in params:
-        for field in params['ip']:
-            setattr(ethernet.data, field, params['ip'][field])
-    if 'ethernet' in params:
-        for field in params['ethernet']:
-            setattr(ethernet, field, params['ethernet'][field])
-
-
-def generate_custom_http_request_packet(data, params=[]):
-    tcp = dpkt.tcp.TCP(
-        b'\x9d\x7e' +                                        # sport
-        b'\x22\xb8' +                                        # dport
-        b'\xb6\xce\xe8\x3d' +                                # seq
-        b'\xb7\x1a\x15\x40' +                                # ack
-        b'\x80' +                                            # len
-        b'\x18' +                                            # flags
-        b'\x0e\x42' +                                        # win
-        b'\x40\xe0' +                                        # chk
-        b'\x00\x00' +                                        # pointer
-        b'\x01\x01\x08\x0a\x3c\x58\x15\xa4\x90\xfd\xa6\xc4'  # options
-    )
-    tcp.data = data.encode("utf-8")
-    ip = dpkt.ip.IP(
-        b'\x45' +              # ver + hlen
-        b'\x00' +              # dsf
-        b'\x04\x24' +          # len
-        b'\xfd\xa1' +          # id
-        b'\x40' +              # flags
-        b'\x00' +              # offset
-        b'\x40' +              # ttl
-        b'\x06' +              # proto
-        b'\xfc\x68' +          # cks
-        b'\x0a\x0a\x0a\x01' +  # src
-        b'\x0a\x0a\x0a\x02'    # dst
-    )
-    ip.len = len(data)
-    ip.data = tcp
-    ethernet = dpkt.ethernet.Ethernet(
-        b'\x00\x00\x00\x00\x00\x02' +  # dmac
-        b'\x00\x00\x00\x00\x00\x01' +  # smac
-        b'\x08\x00'
-    )
-    ethernet.data = ip
-    replace_params(ethernet, params)
-    return ethernet
-
-
 def generate_syn_packet():
+    """Generate SYN packet of TCP session
+
+    Returns:
+        dpkt.Ethernet: SYN packet
+    """
+
     tcp = dpkt.tcp.TCP(
         b'\x9d\x7e\x22\xb8\xb6\xce\xe8\x3c\x00\x00\x00\x00' +
         b'\xa0\x02\x72\x10\x3c\xf8\x00\x00\x02\x04\x05\xb4' +
@@ -83,6 +38,12 @@ def generate_syn_packet():
 
 
 def generate_synack_packet():
+    """Generate SYN-ACK packet of TCP session
+
+    Returns:
+        dpkt.Ethernet: SYN-ACK packet
+    """
+
     tcp = dpkt.tcp.TCP(
         b'\x22\xb8\x9d\x7e\xb7\x1a\x15\x3f\xb6\xce\xe8\x3d' +
         b'\xa0\x12\x71\x20\xe4\xa9\x00\x00\x02\x04\x05\xb4' +
@@ -103,6 +64,12 @@ def generate_synack_packet():
 
 
 def generate_ack_packet():
+    """Generate empty ACK packet before HTTP request
+
+    Returns:
+        dpkt.Ethernet: ACK packet
+    """
+
     tcp = dpkt.tcp.TCP(
         b'\x9d\x7e\x22\xb8\xb6\xce\xe8\x3d\xb7\x1a\x15\x40' +
         b'\x80\x10\x0e\x42\x3c\xf0\x00\x00\x01\x01\x08\x0a' +
@@ -122,6 +89,15 @@ def generate_ack_packet():
 
 
 def generate_http_request_packet(data):
+    """Generate HTTP request packet with specified payload
+
+    Args:
+        data: binnary TCP payload data
+
+    Returns:
+        dpkt.Ethernet: HTTP request packet
+    """
+
     tcp = dpkt.tcp.TCP(
         b'\x9d\x7e\x22\xb8\xb6\xce\xe8\x3d\xb7\x1a\x15\x40' +
         b'\x80\x18\x0e\x42\x40\xe0\x00\x00\x01\x01\x08\x0a' +
@@ -146,6 +122,12 @@ def generate_http_request_packet(data):
 
 
 def generate_ack_after_request_packet():
+    """Generate empty ACK packet after request
+
+    Returns:
+        dpkt.Ethernet: ACK packet
+    """
+
     tcp = dpkt.tcp.TCP(
         b'\x22\xb8\x9d\x7e\xb7\x1a\x15\x40\xb6\xce\xe8\x86' +
         b'\x80\x10\x00\x3d\x80\x6a\x00\x00\x01\x01\x08\x0a' +
@@ -165,6 +147,12 @@ def generate_ack_after_request_packet():
 
 
 def generate_http_response_packet(data):
+    """Generate HTTP response packet
+
+    Returns:
+        dpkt.Ethernet: HTTP response packet
+    """
+
     tcp = dpkt.tcp.TCP(
         b'\x22\xb8\x9d\x7e\xb7\x1a\x15\x40\xb6\xce\xe8\x86' +
         b'\x80\x18\x00\x3d\x46\xbf\x00\x00\x01\x01\x08\x0a' +
@@ -186,6 +174,12 @@ def generate_http_response_packet(data):
 
 
 def generate_ack_after_response_packet():
+    """Generate empty ACK packet after HTTP response
+
+    Returns:
+        dpkt.Ethernet: ACK packet
+    """
+
     tcp = dpkt.tcp.TCP(
         b'\x9d\x7e\x22\xb8\xb6\xce\xe8\x86\xb7\x1a\x15\x53' +
         b'\x80\x10\x54\xa0\x3c\xf0\x00\x00\x01\x01\x08\x0a' +
@@ -205,6 +199,12 @@ def generate_ack_after_response_packet():
 
 
 def generate_first_fin_packet():
+    """Generate the first FIN packet
+
+    Returns:
+        dpkt.Ethernet: FIN packet
+    """
+
     tcp = dpkt.tcp.TCP(
         b'\x9d\x7e\x22\xb8\xb6\xce\xe8\x86\xb7\x1a\x15\x53' +
         b'\x80\x11\x54\xa0\x3c\xf0\x00\x00\x01\x01\x08\x0a' +
@@ -224,6 +224,12 @@ def generate_first_fin_packet():
 
 
 def generate_second_fin_packet():
+    """Generate the second FIN packet
+
+    Returns:
+        dpkt.Ethernet: FIN packet
+    """
+
     tcp = dpkt.tcp.TCP(
         b'\x22\xb8\x9d\x7e\xb7\x1a\x15\x53\xb6\xce\xe8\x87' +
         b'\x80\x11\x00\x3d\x53\x05\x00\x00\x01\x01\x08\x0a' +
@@ -243,6 +249,12 @@ def generate_second_fin_packet():
 
 
 def generate_ack_after_second_fin_packet():
+    """Generate ACK packet after second FIN
+
+    Returns:
+        dpkt.Ethernet: ACK packet
+    """
+
     tcp = dpkt.tcp.TCP(
         b'\x9d\x7e\x22\xb8\xb6\xce\xe8\x87\x7e\xb7\x1a\x16' +
         b'\x80\x10\x54\xa0\x3c\xf0\x00\x00\x01\x01\x08\x0a' +
@@ -262,6 +274,16 @@ def generate_ack_after_second_fin_packet():
 
 
 def generate_tcp_session(http_request, http_response):
+    """Generate full request-response TCP session
+
+    Args:
+        http_request (dpkt.http.Request): HTTP request
+        http_response (dpkt.http.Response): Http response
+
+    Returns:
+        str: binnary data in pcap format
+    """
+
     data = [
         {
             'timestamp': 1489136209.000001,
@@ -311,7 +333,84 @@ def generate_tcp_session(http_request, http_response):
     return data
 
 
+def replace_params(ethernet, params=[]):
+    """Replace parameters of Ethernet, TCP and/or IP packet
+
+    Args:
+        ethernet (str): Ethernet packet
+        params (dict): packet parameters
+
+    Returns:
+        dpkt.Ethernet: Ethernet packet including IP and TCP data
+    """
+
+    if 'tcp' in params:
+        for field in params['tcp']:
+            setattr(ethernet.data.data, field, params['tcp'][field])
+    if 'ip' in params:
+        for field in params['ip']:
+            setattr(ethernet.data, field, params['ip'][field])
+    if 'ethernet' in params:
+        for field in params['ethernet']:
+            setattr(ethernet, field, params['ethernet'][field])
+
+
+def generate_custom_http_request_packet(data, params=[]):
+    """Generate custom HTTP request packet with specified payload
+
+    Args:
+        data (str): binnary TCP payload data
+        params (dict): packet parameters
+
+    Returns:
+        dpkt.Ethernet: HTTP request packet
+    """
+
+    tcp = dpkt.tcp.TCP(
+        b'\x9d\x7e' +                                        # sport
+        b'\x22\xb8' +                                        # dport
+        b'\xb6\xce\xe8\x3d' +                                # seq
+        b'\xb7\x1a\x15\x40' +                                # ack
+        b'\x80' +                                            # len
+        b'\x18' +                                            # flags
+        b'\x0e\x42' +                                        # win
+        b'\x40\xe0' +                                        # chk
+        b'\x00\x00' +                                        # pointer
+        b'\x01\x01\x08\x0a\x3c\x58\x15\xa4\x90\xfd\xa6\xc4'  # options
+    )
+    tcp.data = data.encode("utf-8")
+    ip = dpkt.ip.IP(
+        b'\x45' +              # ver + hlen
+        b'\x00' +              # dsf
+        b'\x04\x24' +          # len
+        b'\xfd\xa1' +          # id
+        b'\x40' +              # flags
+        b'\x00' +              # offset
+        b'\x40' +              # ttl
+        b'\x06' +              # proto
+        b'\xfc\x68' +          # cks
+        b'\x0a\x0a\x0a\x01' +  # src
+        b'\x0a\x0a\x0a\x02'    # dst
+    )
+    ip.len = len(data)
+    ip.data = tcp
+    ethernet = dpkt.ethernet.Ethernet(
+        b'\x00\x00\x00\x00\x00\x02' +  # dmac
+        b'\x00\x00\x00\x00\x00\x01' +  # smac
+        b'\x08\x00'
+    )
+    ethernet.data = ip
+    replace_params(ethernet, params)
+    return ethernet
+
+
 def generate_pcapng_data():
+    """Generate data in pcapng format
+
+    Returns:
+        str: binnary data in pcapng format
+    """
+
     data = \
         b'\x0a\x0d\x0d\x0a\x88\x00\x00\x00\x4d\x3c\x2b\x1a\x01\x00\x00' + \
         b'\x00\xff\xff\xff\xff\xff\xff\xff\xff\x03\x00\x2d\x00\x4d\x61' + \

@@ -58,19 +58,24 @@ def pcap2txt(args):
         file_handler = open(args['output'], "w")
     else:
         file_handler = sys.stdout
-    if args['stats_only']:
-        for request in reader.read_pcap(args):
-            pass
-    else:
-        for request in reader.read_pcap(args):
-            file_handler.write("%0.6f: [%s:%d -> %s:%d]\n%s\n" % (
-                request.timestamp,
-                request.src,
-                request.sport,
-                request.dst,
-                request.dport,
-                request.origin
-            ))
+    try:
+        if args['stats_only']:
+            for request in reader.read_pcap(args):
+                pass
+        else:
+            for request in reader.read_pcap(args):
+                file_handler.write("%0.6f: [%s:%d -> %s:%d]\n%s\n" % (
+                    request.timestamp,
+                    request.src,
+                    request.sport,
+                    request.dst,
+                    request.dport,
+                    request.origin
+                ))
+    except ValueError as e:
+        sys.stderr.write('Error: ' + str(e) + "\n")
+        return 1
+
     if file_handler is not sys.stdout:
         file_handler.close()
 
@@ -79,13 +84,14 @@ def pcap2txt(args):
         stats = reader.get_stats()
         for key in stats.keys():
             print("\t%s: %d" % (key, stats[key]))
+    return 0
 
 
 def main():
     """The main function"""
 
     args = parse_args()
-    pcap2txt(args)
+    return pcap2txt(args)
 
 
 def init():

@@ -15,7 +15,7 @@ import pcaper
 from pcaper import har2txt
 import sys
 import json
-import har_gen
+from pcaper import har_gen
 
 
 class TestParseHttp(object):

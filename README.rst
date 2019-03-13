@@ -8,6 +8,18 @@ pcaper
 .. image:: https://codecov.io/gh/gaainf/pcaper/branch/master/graph/badge.svg
     :target: https://codecov.io/gh/gaainf/pcaper/
 
+.. image:: https://img.shields.io/badge/python-2.7-blue.svg
+    :target: https://www.python.org/downloads/release/python-270/
+
+.. image:: https://img.shields.io/badge/python-3.5-blue.svg
+    :target: https://www.python.org/downloads/release/python-350/
+
+.. image:: https://img.shields.io/badge/python-3.6-blue.svg
+    :target: https://www.python.org/downloads/release/python-360/
+
+.. image:: https://img.shields.io/pypi/l/pcaper.svg
+    :target: https://github.com/gaainf/pcaper/blob/master/LICENSE
+
 The package helps to assemble and iterate HTTP requests.
 Pcaper provides class to read traffic files in pcap or har formats, executable converters - `pcap2txt` and `har2txt`.
 `PcapParser` based on `dpkt <https://github.com/kbandla/dpkt/>`_. `HarParser` uses built-in json package.
@@ -171,25 +183,25 @@ Filter HTTP packets
 
 .. code:: bash
 
-    pcap2txt -i file.pcap -F '"rambler.ru" in http.uri'
+    pcap2txt -F '"rambler.ru" in http.uri' file.pcap
 
 You can use logical expressions in filters
 
 .. code:: bash
 
-    pcap2txt -i file.pcap -F '"keep-alive" in http.headers["connection"] or "Keep-alive" in http.headers["connection"]'
+    pcap2txt -F '"keep-alive" in http.headers["connection"] or "Keep-alive" in http.headers["connection"]' file.pcap
 
 Standard Python string functions over HTTP request headers
 
 .. code:: bash
 
-    pcap2txt -i file.pcap -F '"keep-alive" in http.headers["connection"].lower()'
+    pcap2txt -F '"keep-alive" in http.headers["connection"].lower()' file.pcap
 
 Use excluding filters also
 
 .. code:: bash
 
-    pcap2ammo -i file.pcap -F '"rambler.ru" not in http.uri'
+    pcap2ammo -F '"rambler.ru" not in http.uri' file.pcap
 
 Print statistics about counted requests:
 
@@ -222,13 +234,13 @@ Filter HTTP packets
 
 .. code:: bash
 
-    har2txt -i file.har -F 'http.verision == "1.1"'
+    har2txt -F 'http.verision == "1.1"' file.har
 
 Use excluding filters also
 
 .. code:: bash
 
-    har2txt -i file.pcap -F '"rambler.ru" not in http.uri'
+    har2txt -F '"rambler.ru" not in http.uri' file.har
 
 Filter packets with destination IP. 
 `pcaper` extracts data from har file,
@@ -236,7 +248,7 @@ which contains destination IP (`dst` filed), but doesn't contain source IP, sour
 
 .. code:: bash
 
-    har2txt -i file.har -F 'http.dst == "1.1.1.1"'
+    har2txt -F 'http.dst == "1.1.1.1"' file.har
 
 Print statistics about counted requests:
 

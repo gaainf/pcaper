@@ -47,8 +47,12 @@ def parse_args():
 
 def har2txt(args):
     """Read har file and print HTTP requests
+
     Args:
         args (dict): console arguments
+
+    Returns:
+        int: 0 if Success`, 1 otherwise`
     """
 
     reader = HarParser()
@@ -68,7 +72,7 @@ def har2txt(args):
                     request.dst,
                     request.origin
                 ))
-    except ValueError, e:
+    except ValueError as e:
         sys.stderr.write('Error: ' + str(e) + "\n")
         return 1
 
