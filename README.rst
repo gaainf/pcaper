@@ -21,10 +21,12 @@ pcaper
     :target: https://github.com/gaainf/pcaper/blob/master/LICENSE
 
 The package helps to assemble and iterate HTTP requests.
-Pcaper provides class to read traffic files in pcap or har formats, executable converters - `pcap2txt` and `har2txt`.
+Pcaper provides class to read traffic files in pcap or har formats,
+executable converters - `pcap2txt` and `har2txt`.
 `PcapParser` based on `dpkt <https://github.com/kbandla/dpkt/>`_. `HarParser` uses built-in json package.
 
-`pcaper` extends dpkt.http.Request class. Following fields of HTTP request are available:
+`pcaper` extends dpkt.http.Request class.
+Following fields of HTTP request are available:
 
 - `timestamp` - timestamp of the last packet of original HTTP request
 - `src` - source IP address
@@ -242,9 +244,9 @@ Use excluding filters also
 
     har2txt -F '"rambler.ru" not in http.uri' file.har
 
-Filter packets with destination IP. 
-`pcaper` extracts data from har file,
-which contains destination IP (`dst` filed), but doesn't contain source IP, source and destination ports.
+Filter packets with destination IP.
+`pcaper` extracts data from har file, which contains destination IP
+(`dst` filed), but doesn't contain source IP, source and destination ports.
 
 .. code:: bash
 

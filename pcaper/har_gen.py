@@ -9,21 +9,6 @@
 # Additional methods for har file generating
 
 import pcaper
-from datetime import datetime
-
-
-def format_microseconds(date, accuracy=3):
-    """Format datetime in microseconds
-    Args:
-        date (datetime): date
-        accuracy (int): round accuaracy
-
-    Returns:
-        datetime: formated string
-    """
-
-    return datetime.strftime(date, '%Y-%m-%dT%H:%M:%S.') + \
-        datetime.strftime(date, '%f')[:accuracy] + 'Z'
 
 
 def get_har_file_struct():
@@ -42,12 +27,7 @@ def get_har_file_struct():
             },
             "pages": [
                 {
-                    "startedDateTime": format_microseconds(
-                        datetime.strptime(
-                            '2019-03-08T21:10:26.123Z',
-                            '%Y-%m-%dT%H:%M:%S.%fZ'
-                        )
-                    ),
+                    "startedDateTime": "2019-03-08T21:10:26.123Z",
                     "id": "page_1",
                     "title": "http://example.com/",
                     "pageTimings": {
@@ -78,12 +58,7 @@ def generate_http_request_har_object(http_request):
     request_dict = parser.parse_request(http_request)
 
     har_structure["log"]["entries"].append({
-        "startedDateTime": format_microseconds(
-            datetime.strptime(
-                '2019-03-08T21:10:26.123Z',
-                '%Y-%m-%dT%H:%M:%S.%fZ'
-            )
-        ),
+        "startedDateTime": '2019-03-08T21:10:26.123Z',
         "time": 0.0,
         "request": {
             "method": request_dict["method"],

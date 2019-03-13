@@ -19,6 +19,7 @@ from collections import OrderedDict
 from .HTTPRequest import HTTPRequest
 import json
 from datetime import datetime
+from dateutil import parser as date_parser
 
 
 class HTTPParser:
@@ -521,12 +522,14 @@ class HarParser:
                     http_request['headers'][pair['name'].lower()] = \
                         pair['value']
             if 'postData' in entry['request']:
+                if 'text' not in entry['request']['postData']:
+                    continue
                 http_request['body'] = \
                     entry['request']['postData']['text']
             if 'startedDateTime' in entry:
-                timestamp = datetime.strptime(
+                timestamp = date_parser.parse(
                     entry['startedDateTime'],
-                    '%Y-%m-%dT%H:%M:%S.%fZ'
+                    ignoretz=True
                 )
                 http_request['timestamp'] = \
                     (timestamp - datetime(1970, 1, 1)).total_seconds()

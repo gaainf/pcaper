@@ -986,6 +986,8 @@ class TestPcaper(object):
 
     # HarParser
 
+    # Fixtures
+
     def set_har_file(self, filename, data):
         """Prepare har file"""
 
@@ -1135,7 +1137,7 @@ class TestPcaper(object):
 
     @pytest.mark.negative
     def test_read_har_parse_absent_method(self, prepare_har_file):
-        """Check read_har method handles incorrect json object correctly"""
+        """Check read_har method handles absent method as expected"""
 
         http_request = "GET https://rambler.ru/\r\n" + \
                        "Host: rambler.ru\r\n" + \
@@ -1155,7 +1157,7 @@ class TestPcaper(object):
 
     @pytest.mark.negative
     def test_read_har_parse_empty_json(self, prepare_har_file, capsys):
-        """Check read_har method handles empty json correctly"""
+        """Check read_har method handles empty json as expected"""
 
         filename = prepare_har_file({})
         reader = pcaper.HarParser()
@@ -1175,7 +1177,7 @@ class TestPcaper(object):
 
     @pytest.mark.positive
     def test_read_har_parse_incorrect_json(self, prepare_har_file):
-        """Check read_har method handles incorrect json correctly"""
+        """Check read_har method handles incorrect json as expected"""
 
         filename = prepare_har_file({"log": {"entries": ['REQ']}})
         reader = pcaper.HarParser()
@@ -1225,6 +1227,80 @@ class TestPcaper(object):
         ):
             assert request['origin'] == http_request, \
                 "unexpected HTTP request data"
+            packets = packets + 1
+        assert packets == 1, "unexpected packets count"
+
+    @pytest.mark.negative
+    def test_read_har_parse_unexpected_post_data(self, prepare_har_file):
+        """Check read_har method handles unexpected postData
+        format correctly"""
+
+        http_request = "POST https://rambler.ru/\r\n" + \
+                       "Host: rambler.ru\r\n" + \
+                       "Content-Length: 7\r\n\r\n" + \
+                       "param=0"
+        data = har_gen.generate_http_request_har_object(http_request)
+        del data['log']['entries'][-1]['request']['postData']['text']
+        filename = prepare_har_file(data)
+        reader = pcaper.HarParser()
+
+        packets = 0
+        for request in reader.read_har({
+            'input': filename
+            }
+        ):
+            packets = packets + 1
+        assert packets == 0, "unexpected packets count"
+
+    @pytest.mark.positive
+    def test_read_har_parse_another_timestamp_format(
+        self,
+        prepare_har_file
+    ):
+        """Check read_har method handles another timestamp
+        format correctly"""
+
+        http_request = "POST https://rambler.ru/\r\n" + \
+                       "Host: rambler.ru\r\n" + \
+                       "Content-Length: 7\r\n\r\n" + \
+                       "param=0"
+        data = har_gen.generate_http_request_har_object(http_request)
+        data['log']['entries'][-1]['startedDateTime'] = \
+            '2018-11-15T19:14:11.930+03:00'
+        filename = prepare_har_file(data)
+        reader = pcaper.HarParser()
+
+        packets = 0
+        for request in reader.read_har({
+            'input': filename
+            }
+        ):
+            packets = packets + 1
+        assert packets == 1, "unexpected packets count"
+
+    @pytest.mark.negative
+    def test_read_har_parse_unexpected_timestamp_format(
+        self,
+        prepare_har_file
+    ):
+        """Check read_har method handles unexpected timestamp
+        format correctly"""
+
+        http_request = "POST https://rambler.ru/\r\n" + \
+                       "Host: rambler.ru\r\n" + \
+                       "Content-Length: 7\r\n\r\n" + \
+                       "param=0"
+        data = har_gen.generate_http_request_har_object(http_request)
+        data['log']['entries'][-1]['startedDateTime'] = \
+            '2018-11-15T19:14'
+        filename = prepare_har_file(data)
+        reader = pcaper.HarParser()
+
+        packets = 0
+        for request in reader.read_har({
+            'input': filename
+            }
+        ):
             packets = packets + 1
         assert packets == 1, "unexpected packets count"
 
