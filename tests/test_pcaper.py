@@ -187,7 +187,6 @@ class TestPcaper(object):
             packets = packets + 1
         assert packets == 1, "unexpected packets count"
 
-
     @pytest.mark.negative
     def test_read_text_parse_excess_body_request(
             self, prepare_text_file):
@@ -1572,7 +1571,6 @@ class TestPcaper(object):
         parsed_request = parser.parse_request(http_request)
         assert len(parsed_request['headers']) == 0, "unexpected result"
 
-
     @pytest.mark.negative
     def test_parse_request_unicode_header(self):
         """Check HTTPParser parse_request method handles HTTP GET request
@@ -1586,7 +1584,6 @@ class TestPcaper(object):
 
         parsed_request = parser.parse_request(http_request)
         assert len(parsed_request['headers']) == 2, "unexpected result"
-
 
     @pytest.mark.positive
     def test_build_origin_post_request(self):

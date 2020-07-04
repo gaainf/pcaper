@@ -155,8 +155,10 @@ class HTTPParser:
         """
 
         request = {}
-        if sys.version_info[0] == 2 and isinstance(data, str):
-            data = unicode(data, 'utf-8') # python2 unicode support
+        if sys.version_info[0] >= 3:
+            unicode = str
+        elif isinstance(data, str):
+            data = unicode(data, 'utf-8')  # python2 unicode support
         file = BytesIO(data.encode("utf-8", "replace"))
         line = file.readline().decode("utf-8", "replace")
         parts = line.strip().split()
@@ -189,7 +191,8 @@ class HTTPParser:
         try:
             request['body'] = ''
             request['body'] = self.parse_body(
-                file, request['headers'], fix_incomplete).decode('ascii', 'ignore')
+                file, request['headers'],
+                fix_incomplete).decode('ascii', 'ignore')
         except (dpkt.dpkt.NeedData, dpkt.dpkt.UnpackError):
             return None
         return request
@@ -355,7 +358,8 @@ class TextParser:
             # the next packet
             else:
                 continue
-            http_request = self.parser.parse_request(request, params['fix_incomplete'])
+            http_request = self.parser.parse_request(
+                request, params['fix_incomplete'])
             if http_request is None:
                 self.info['incorrect'] = self.info['incorrect'] + 1
                 continue
