@@ -17,6 +17,9 @@ pcaper
 .. image:: https://img.shields.io/badge/python-3.6-blue.svg
     :target: https://www.python.org/downloads/release/python-360/
 
+.. image:: https://img.shields.io/badge/python-3.7-blue.svg
+    :target: https://www.python.org/downloads/release/python-370/
+
 .. image:: https://img.shields.io/pypi/l/pcaper.svg
     :target: https://github.com/gaainf/pcaper/blob/master/LICENSE
 
