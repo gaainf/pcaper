@@ -10,6 +10,7 @@
 """ Parse pcap file and asseble HTTP requests
 """
 
+from __future__ import unicode_literals
 import dpkt
 import socket
 from dpkt.compat import BytesIO
@@ -20,6 +21,7 @@ from .HTTPRequest import HTTPRequest
 import json
 from datetime import datetime
 from dateutil import parser as date_parser
+import sys
 
 
 class HTTPParser:
@@ -91,7 +93,53 @@ class HTTPParser:
                 return int(http_request['headers']['content-length'])
         return None
 
-    def parse_request(self, data):
+    def parse_body(self, file, headers, fix_incomplete=False):
+        """Return HTTP body parsed from a file object, given HTTP header dict
+
+        Args:
+            file: BytesIO object
+            headers: HTTP request headers as dict
+
+        Returns:
+            str: body string"""
+
+        if headers.get('transfer-encoding', '').lower() == 'chunked':
+            buffer_list = []
+            found_end = False
+            while True:
+                try:
+                    size = file.readline().split(None, 1)[0]
+                except IndexError:
+                    raise dpkt.UnpackError('missing chunk size')
+                n = int(size, 16)
+                if n == 0:
+                    found_end = True
+                buffer = file.read(n)
+                if file.readline().strip():
+                    break
+                if n and len(buffer) == n:
+                    buffer_list.append(buffer)
+                else:
+                    break
+            if not found_end:
+                raise dpkt.NeedData('premature end of chunked body')
+            body = b''.join(buffer_list)
+        elif 'content-length' in headers:
+            n = int(headers['content-length'])
+            body = file.read(n)
+            if fix_incomplete:
+                headers['content-length'] = len(body)
+            elif len(body) != n:
+                raise dpkt.NeedData(
+                    'short body (missing %d bytes)' % (n - len(body)))
+        elif 'content-type' in headers:
+            body = file.read()
+        else:
+            # XXX - need to handle HTTP/0.9
+            body = b''
+        return body
+
+    def parse_request(self, data, fix_incomplete=False):
         """Parse HTTP request to dict structure:
             "version": protocol version
             "method":  request method
@@ -107,6 +155,8 @@ class HTTPParser:
         """
 
         request = {}
+        if sys.version_info[0] == 2 and isinstance(data, str):
+            data = unicode(data, 'utf-8') # python2 unicode support
         file = BytesIO(data.encode("utf-8", "replace"))
         line = file.readline().decode("utf-8", "replace")
         parts = line.strip().split()
@@ -130,7 +180,7 @@ class HTTPParser:
         request['headers'] = self.headers_to_lower(request['origin_headers'])
 
         # ignore value if multiple Content-Length headers
-        if 'content-length' in request['headers']:
+        if not fix_incomplete and 'content-length' in request['headers']:
             if not isinstance(
                         request['headers']['content-length'],
                         string_types
@@ -138,8 +188,8 @@ class HTTPParser:
                 return None
         try:
             request['body'] = ''
-            request['body'] = dpkt.http.parse_body(
-                file, request['headers']).decode('ascii', 'ignore')
+            request['body'] = self.parse_body(
+                file, request['headers'], fix_incomplete).decode('ascii', 'ignore')
         except (dpkt.dpkt.NeedData, dpkt.dpkt.UnpackError):
             return None
         return request
@@ -217,6 +267,130 @@ class HTTPParser:
             body = http_request['body']
         return '%s\r\n%s\r\n%s' % (
             base_line, headers, str(body))  # body.decode("utf8", "ignore")
+
+
+class TextParser:
+    """HTTP requests iterator for text file"""
+
+    def __init__(self):
+        """Constructor"""
+
+        self.info = OrderedDict()
+        self.info['total'] = 0
+        self.info['complete'] = 0
+        self.info['incorrect'] = 0
+        self.info['incomplete'] = 0
+        self.delimiter = "%--%"
+        self.parser = HTTPParser()
+
+    def read_records(self, filename, delimiter, block_size=4096):
+        """Read text file record by record separated with specified delimiter
+
+        Args:
+            filename: text filename
+            delimiter: specified delimiter for records
+
+        Returns:
+            str: iterator for string records
+        """
+
+        buffer = ""
+        with open(filename, 'r') as f:
+            while True:
+                chunk = f.read(block_size)
+                if not chunk:
+                    yield buffer
+                    break
+                pos = chunk.find(delimiter)
+                if pos >= 0:
+                    pos_delimiter_length = pos + len(delimiter)
+                    start_index = pos
+                    end_index = pos_delimiter_length
+                    if chunk[pos-2:pos] == "\r\n":
+                        start_index = pos - 2
+                    elif chunk[pos-1:pos] == "\n":
+                        start_index = pos - 1
+                    if chunk[pos_delimiter_length:pos_delimiter_length+2] ==\
+                            "\r\n":
+                        end_index = pos_delimiter_length + 2
+                    elif chunk[pos_delimiter_length:pos_delimiter_length+1] ==\
+                            "\n":
+                        end_index = pos_delimiter_length + 1
+                    yield buffer + chunk[:start_index]
+                    buffer = chunk[end_index:]
+                else:
+                    buffer += chunk
+
+    def read_text(self, params):
+        """Read text file and return iterator for assembled HTTP requests
+
+        Args:
+            params (dict): input parameters
+                "input" : input text filename
+                "http_filter": HTTP packet filter
+                "delimiter": requests delimiter (%--% by default)
+                "fix_incomplete": use requests with incomplete body
+                                  and fix content-length header
+        """
+
+        self.info = OrderedDict()
+        self.info['total'] = 0
+        self.info['complete'] = 0
+        self.info['incorrect'] = 0
+        self.info['incomplete'] = 0
+
+        if 'fix_incomplete' not in params:
+            params['fix_incomplete'] = False
+        if 'input' not in params or not params['input']:
+            raise ValueError('input filename is not specified or empty')
+        if 'delimiter' in params and params['delimiter'] is not None:
+            self.delimiter = params['delimiter']
+
+        if "http_filter" not in params:
+            params['http_filter'] = None
+        for request in self.read_records(params['input'], self.delimiter):
+            # HTTP request
+            if self.parser.starts_with_http_method(request):
+                self.info['total'] = self.info['total'] + 1
+            # the next packet
+            else:
+                continue
+            http_request = self.parser.parse_request(request, params['fix_incomplete'])
+            if http_request is None:
+                self.info['incorrect'] = self.info['incorrect'] + 1
+                continue
+            http_request['origin'] = self.parser.build_origin(http_request)
+
+            if not self.parser.is_complete_request(http_request):
+                if not params['fix_incomplete']:
+                    continue
+            else:
+                self.info['complete'] = self.info['complete'] + 1
+            http_request_packet = HTTPRequest(http_request)
+            if not self.filter_http_packet(
+                params['http_filter'],
+                http_request_packet
+            ):
+                continue
+            yield http_request_packet
+
+        self.info['incomplete'] = self.info['total'] - \
+            self.info['complete'] - self.info['incorrect']
+
+    def filter_http_packet(self, filter_string, http):
+        """Filter HTTP packet
+        Args:
+            filter_string (string): Packet filter
+            http (HTTPRequest): extended dpkt HTTP packet
+
+        Returns:
+            bool: returns True if HTTP packet
+                  is corresponding filter expression
+        """
+
+        if filter_string is not None and filter_string:
+            return eval(filter_string)
+        return True
 
 
 class PcapParser:
