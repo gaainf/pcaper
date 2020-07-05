@@ -155,10 +155,10 @@ class HTTPParser:
         """
 
         request = {}
-        if sys.version_info[0] >= 3:
-            unicode = str
-        elif isinstance(data, str):
-            data = unicode(data, 'utf-8')  # python2 unicode support
+        if sys.version_info[0] == 2 and isinstance(data, str):
+            # python2 unicode support
+            data = unicode(data, 'utf-8')  # noqa: F821
+            # to void undefined name 'unicode' for python3
         file = BytesIO(data.encode("utf-8", "replace"))
         line = file.readline().decode("utf-8", "replace")
         parts = line.strip().split()
