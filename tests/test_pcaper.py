@@ -77,6 +77,112 @@ class TestPcaper(object):
         assert packets == 1, "unexpected packets count"
 
     @pytest.mark.positive
+    def test_read_text_parse_get_request_with_http_filter(
+            self, prepare_text_file):
+        """Check read_text method parses HTTP GET request
+           with http filter correctly"""
+
+        data = "GET https://rambler.ru/ HTTP/1.1\n" + \
+               "Host: rambler.ru\n" + \
+               "Content-Length: 0\n" + \
+               "\n%--%\n" + \
+               "GET https://ya.ru/ HTTP/1.1\n" + \
+               "Host: rambler.ru\n" + \
+               "Content-Length: 0\n"
+
+        origin_http_request = "GET https://rambler.ru/ HTTP/1.1\r\n" + \
+                              "Host: rambler.ru\r\n" + \
+                              "Content-Length: 0\r\n\r\n"
+
+        filename = prepare_text_file(data)
+        reader = pcaper.TextParser()
+
+        packets = 0
+        for request in reader.read_text({
+            'input': filename,
+            'http_filter': '"rambler" in http.uri'
+            }
+        ):
+            assert request['origin'] == origin_http_request, \
+                "unexpected HTTP request data"
+            packets = packets + 1
+        assert packets == 1, "unexpected packets count"
+
+    @pytest.mark.negative
+    def test_read_text_parse_incorrect_method(
+            self, prepare_text_file):
+        """Check read_text method parses HTTP GET request correctly"""
+
+        data = "HEADD https://ramblerd.ru/ HTTP/1.1\n" + \
+               "Host: rambler.ru\n" + \
+               "Content-Length: 0\n" + \
+               "\n%--%\n" + \
+               "HHEAD https://ramblerd.ru/ HTTP/1.1\n" + \
+               "Host: rambler.ru\n" + \
+               "Content-Length: 0\n" + \
+               "\n%--%\n" + \
+               "GET https://rambler.ru/ HTTP/1.1\n" + \
+               "Host: rambler.ru\n" + \
+               "Content-Length: 0\n"
+        origin_http_request = "GET https://rambler.ru/ HTTP/1.1\r\n" + \
+                              "Host: rambler.ru\r\n" + \
+                              "Content-Length: 0\r\n\r\n"
+
+        filename = prepare_text_file(data)
+        reader = pcaper.TextParser()
+
+        packets = 0
+        for request in reader.read_text({
+            'input': filename
+            }
+        ):
+            assert request['origin'] == origin_http_request, \
+                "unexpected HTTP request data"
+            packets = packets + 1
+        assert packets == 1, "unexpected packets count"
+
+    @pytest.mark.positive
+    def test_read_text_parse_few_requests(
+            self, prepare_text_file):
+        """Check read_text method parses few HTTP requests correctly"""
+
+        data = "GET https://rambler.ru/ HTTP/1.1\n" + \
+               "Host: rambler.ru\n" + \
+               "Content-Length: 0\n" + \
+               "\n%--%\n" + \
+               "GET https://ya.ru/ HTTP/1.1\n" + \
+               "Host: ya.ru\n" + \
+               "Content-Length: 0\n" + \
+               "\n%--%\n" + \
+               "GET https://mail.ru/ HTTP/1.1\n" + \
+               "Host: mail.ru\n" + \
+               "Content-Length: 0\n"
+        origin_http_requests = [
+            "GET https://rambler.ru/ HTTP/1.1\r\n" +
+            "Host: rambler.ru\r\n" +
+            "Content-Length: 0\r\n\r\n",
+            "GET https://ya.ru/ HTTP/1.1\r\n"
+            "Host: ya.ru\r\n"
+            "Content-Length: 0\r\n\r\n",
+            "GET https://mail.ru/ HTTP/1.1\r\n"
+            "Host: mail.ru\r\n"
+            "Content-Length: 0\r\n\r\n"
+        ]
+
+        filename = prepare_text_file(data)
+        reader = pcaper.TextParser()
+
+        packets = 0
+        for request in reader.read_text({
+            'input': filename
+            }
+        ):
+            assert request['origin'] == origin_http_requests[packets], \
+                "unexpected HTTP request data"
+            packets = packets + 1
+        assert packets == 3, "unexpected packets count"
+
+    @pytest.mark.positive
     def test_read_text_parse_post_request_with_delimiter(
             self, prepare_text_file):
         """Check read_text method parses HTTP POST request correctly"""
@@ -104,9 +210,75 @@ class TestPcaper(object):
         assert packets == 1, "unexpected packets count"
 
     @pytest.mark.positive
+    def test_read_text_parse_post_request_with_specified_delimiter(
+            self, prepare_text_file):
+        """Check read_text method parses HTTP POST request with specified
+            delimiter"""
+
+        http_request = "POST https://rambler.ru/ HTTP/1.1\n" + \
+                       "Host: rambler.ru\n" + \
+                       "Content-Length: 2\n\n" +\
+                       "{}"
+        orig_http_request = "POST https://rambler.ru/ HTTP/1.1\r\n" + \
+                            "Host: rambler.ru\r\n" + \
+                            "Content-Length: 2\r\n\r\n" +\
+                            "{}"
+        data = http_request + "\n-----------\n"
+        filename = prepare_text_file(data)
+        reader = pcaper.TextParser()
+
+        packets = 0
+        for request in reader.read_text({
+            'input': filename,
+            'delimiter': "-----------"
+            }
+        ):
+            assert request['origin'] == orig_http_request, \
+                "unexpected HTTP request data"
+            packets = packets + 1
+        assert packets == 1, "unexpected packets count"
+
+    @pytest.mark.positive
+    def test_read_text_parse_get_request_with_rn(
+            self, prepare_text_file):
+        """Check read_text method parses HTTP GET request with \\r\\n
+            at the end"""
+
+        http_request = "GET https://rambler.ru/ HTTP/1.1\r\n" + \
+                       "Host: rambler.ru\r\n" + \
+                       "Content-Length: 0\r\n\r\n"
+        data = http_request + "\r\n%--%\r\n"
+        filename = prepare_text_file(data)
+        reader = pcaper.TextParser()
+
+        packets = 0
+        for request in reader.read_text({
+            'input': filename
+            }
+        ):
+            assert request['origin'] == http_request, \
+                "unexpected HTTP request data"
+            packets = packets + 1
+        assert packets == 1, "unexpected packets count"
+
+    @pytest.mark.negative
+    def test_read_text_parse_without_input(
+            self, prepare_text_file):
+        """Check read_text method parses HTTP POST request correctly"""
+
+        reader = pcaper.TextParser()
+        # check exception text
+        with pytest.raises(
+                ValueError, match=r'input filename is not specified or empty'):
+            packets = 0
+            for request in reader.read_text({}):
+                packets = packets + 1
+        assert packets == 0, "unexpected packets count"
+
+    @pytest.mark.positive
     def test_read_text_parse_single_get_request_without_delimiter(
             self, prepare_text_file):
-        """Check read_text method parses HTTP GET request correctly"""
+        """Check read_text method parses HTTP GET request without delimieter"""
 
         http_request = "GET https://rambler.ru/ HTTP/1.1\n" + \
                        "Host: rambler.ru\n" + \
@@ -179,6 +351,7 @@ class TestPcaper(object):
         ):
             packets = packets + 1
         assert packets == 0, "unexpected packets count"
+        packets = 0
         for request in reader.read_text({
             'input': filename,
             'fix_incomplete': True
