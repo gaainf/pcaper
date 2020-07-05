@@ -6,6 +6,7 @@ python:
   - "3.6"
   - "3.7"
 install:
+  - if [ "$TRAVIS_PYTHON_VERSION" == "2.7" ]; then python -m pip install --upgrade 'pip<21.0' 'setuptools<45' wheel; fi
   - python setup.py install
 before_script:
   - flake8 .

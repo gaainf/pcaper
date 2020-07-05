@@ -3,12 +3,11 @@ name: Python package
 on: [push]
 
 jobs:
-  build:
+  build2:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [2.7, 3.5, 3.6, 3.7]
-
+        python-version: [2.7]
     steps:
     - uses: actions/checkout@v2
     - name: install python ${{ matrix.python-version }}
@@ -17,7 +16,36 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: install
       run: |
+        python --version
+        python -m pip install --upgrade 'pip<21.0' 'setuptools<45' wheel
+        pip list
         python setup.py install
+        pip list
+    - name: lint
+      run: |
+        flake8 .
+    - name: test
+      run: |
+        python setup.py test
+
+  build3:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.5, 3.6, 3.7]
+    steps:
+    - uses: actions/checkout@v2
+    - name: install python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: install
+      run: |
+        python --version
+        python -m pip install --upgrade pip setuptools wheel
+        pip list
+        python setup.py install
+        pip list
     - name: lint
       run: |
         flake8 .

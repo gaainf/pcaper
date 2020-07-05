@@ -21,13 +21,19 @@ setuptools_kwargs = {
         'dpkt>=1.9.1',
         'flake8>=3.5.0',
         'six>=1.11.0',
-        'python-dateutil>=2.8.0'
+        'python-dateutil>=2.8.0',
+        'zipp<=1.2.0; python_version<"3"'
     ],
     'setup_requires': 'pytest-runner',
     'tests_require': [
-        'pytest>=2.7',
-        'pytest-cov>=2.6.0',
-        'mock>=2.0.0'
+        'pytest<=3.7.2; python_version<"3"',
+        'pytest>=3.7.2; python_version>"3"',
+        'more-itertools<=5.0.0; python_version<"3"',
+        'pyparsing<3.0.0; python_version<"3"',
+        'pytest-cov<2.6.0; python_version<"3"',
+        'pytest-cov>=2.6.0; python_version>"3"',
+        'mock<=3.0.0; python_version<="3.5"',
+        'mock>=3.0.0; python_version>"3.5"',
     ],
     'entry_points': {
         'console_scripts': [
