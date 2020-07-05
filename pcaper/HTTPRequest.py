@@ -18,6 +18,7 @@ class HTTPRequest(http.Request):
     def __init__(self, request_dict=None):
         """Constructor"""
 
+        self.__dict = request_dict
         self.version = ''
         self.uri = ''
         self.method = ''
@@ -32,6 +33,9 @@ class HTTPRequest(http.Request):
         self.origin = ''
         if request_dict:
             self.build(request_dict)
+
+    def to_dict(self):
+        return self.__dict
 
     def build(self, request_dict):
         """Convert HTTP request as dict to dpkt.http.Request object

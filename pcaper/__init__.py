@@ -10,6 +10,7 @@
 
 from .pcaper import HTTPRequest
 from .pcaper import HTTPParser
+from .pcaper import TextParser
 from .pcaper import PcapParser
 from .pcaper import HarParser
 from ._version import __version__
@@ -17,6 +18,7 @@ from ._version import __version__
 __all__ = [
     "HTTPRequest",
     "HTTPParser",
+    "TextParser",
     "PcapParser",
     "HarParser",
     "__version__"]
