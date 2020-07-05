@@ -45,7 +45,7 @@ class HTTPParser:
         """
 
         for method in self.METHODS:
-            if http_request.startswith(method):
+            if http_request.startswith(method + " "):
                 return True
         return False
 
@@ -301,28 +301,29 @@ class TextParser:
         with open(filename, 'r') as f:
             while True:
                 chunk = f.read(block_size)
+                while True:
+                    pos = chunk.find(delimiter)
+                    if pos >= 0:
+                        pos_delimiter_length = pos + len(delimiter)
+                        start_index = pos
+                        end_index = pos_delimiter_length
+                        if chunk[pos-2:pos] == "\r\n":
+                            start_index = pos - 2
+                        elif chunk[pos-1:pos] == "\n":
+                            start_index = pos - 1
+                        if chunk[pos_delimiter_length:pos_delimiter_length+2] == "\r\n":
+                            end_index = pos_delimiter_length + 2
+                        elif chunk[pos_delimiter_length:pos_delimiter_length+1] == "\n":
+                            end_index = pos_delimiter_length + 1
+                        yield buffer + chunk[:start_index]
+                        chunk = chunk[end_index:]
+                        buffer = chunk
+                    else:
+                        buffer += chunk
+                        break
                 if not chunk:
                     yield buffer
                     break
-                pos = chunk.find(delimiter)
-                if pos >= 0:
-                    pos_delimiter_length = pos + len(delimiter)
-                    start_index = pos
-                    end_index = pos_delimiter_length
-                    if chunk[pos-2:pos] == "\r\n":
-                        start_index = pos - 2
-                    elif chunk[pos-1:pos] == "\n":
-                        start_index = pos - 1
-                    if chunk[pos_delimiter_length:pos_delimiter_length+2] ==\
-                            "\r\n":
-                        end_index = pos_delimiter_length + 2
-                    elif chunk[pos_delimiter_length:pos_delimiter_length+1] ==\
-                            "\n":
-                        end_index = pos_delimiter_length + 1
-                    yield buffer + chunk[:start_index]
-                    buffer = chunk[end_index:]
-                else:
-                    buffer += chunk
 
     def read_text(self, params):
         """Read text file and return iterator for assembled HTTP requests
