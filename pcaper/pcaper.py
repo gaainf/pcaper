@@ -12,6 +12,7 @@
 
 from __future__ import unicode_literals
 import dpkt
+from dpkt.udp import UDP
 import socket
 from dpkt.compat import BytesIO
 import re
@@ -456,6 +457,8 @@ class PcapParser:
                 continue
             ip_packet = eth_packet.data
             if not hasattr(ip_packet, 'data'):
+                continue
+            if isinstance(ip_packet.data, UDP):
                 continue
             tcp_packet = ip_packet.data
             if not hasattr(tcp_packet, 'data'):
